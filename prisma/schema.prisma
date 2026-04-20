@@ -1,0 +1,1304 @@
+// Inmobiliaria CRM — schema multi-tenant completo.
+// Toda entidad de negocio lleva organizationId + índice compuesto.
+// Soft delete (deletedAt) en modelos críticos. No generamos documentos fiscales ni contratos legales: solo TRACKING.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm]
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum SubscriptionPlan {
+  TRIAL
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIAL
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  AGENCY_ADMIN
+  BROKER
+  AGENT
+  ASSISTANT
+}
+
+enum ContactChannel {
+  WHATSAPP
+  PHONE
+  EMAIL
+}
+
+enum ContactTime {
+  MORNING
+  AFTERNOON
+  EVENING
+  ANYTIME
+}
+
+enum Currency {
+  MXN
+  USD
+}
+
+enum LeadIntent {
+  COMPRA
+  RENTA
+  INVERSION
+  AMBOS
+}
+
+enum LeadSource {
+  WEBSITE
+  INMUEBLES24
+  VIVANUNCIOS
+  LAMUDI
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  WHATSAPP
+  REFERIDO
+  LETRERO
+  CAMINANDO
+  LLAMADA_ENTRANTE
+  OTRO
+}
+
+enum LeadStatus {
+  NUEVO
+  CONTACTADO
+  CALIFICADO
+  VISITA_AGENDADA
+  VISITA_REALIZADA
+  OFERTA
+  NEGOCIACION
+  GANADO
+  PERDIDO
+  EN_PAUSA
+}
+
+enum ClientType {
+  COMPRADOR
+  INQUILINO
+  INVERSIONISTA
+  PROPIETARIO_CLIENTE
+}
+
+enum PropertyCategory {
+  CASA
+  DEPARTAMENTO
+  TOWNHOUSE
+  TERRENO
+  LOCAL_COMERCIAL
+  OFICINA
+  BODEGA
+  NAVE_INDUSTRIAL
+  EDIFICIO
+  RANCHO
+  OTRO
+}
+
+enum TransactionType {
+  VENTA
+  RENTA
+  VENTA_Y_RENTA
+  TRASPASO
+  PREVENTA
+}
+
+enum PropertyStatus {
+  BORRADOR
+  DISPONIBLE
+  APARTADA
+  EN_NEGOCIACION
+  VENDIDA
+  RENTADA
+  PAUSADA
+  NO_DISPONIBLE
+  ARCHIVADA
+}
+
+enum ConservationState {
+  NUEVA
+  EXCELENTE
+  BUENA
+  REGULAR
+  REMODELAR
+}
+
+enum PropertyDocumentType {
+  ESCRITURA
+  PLANO
+  PREDIAL
+  AGUA
+  OTRO
+}
+
+enum ContractKind {
+  MANDATO_EXCLUSIVA
+  MANDATO_NO_EXCLUSIVA
+  MANDATO_COMPARTIDA
+  ARRENDAMIENTO
+  COMPRAVENTA
+  APARTADO
+  CARTA_OFERTA
+}
+
+enum ContractStatus {
+  BORRADOR
+  PENDIENTE_FIRMA
+  ACTIVO
+  POR_VENCER
+  VENCIDO
+  RENOVADO
+  TERMINADO
+  CANCELADO
+}
+
+enum RentalStatus {
+  ACTIVA
+  POR_VENCER
+  EN_RENOVACION
+  TERMINADA
+  DESALOJO
+  SUSPENDIDA
+}
+
+enum RentalPaymentStatus {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+  PARCIAL
+  CONDONADO
+}
+
+enum RentalPaymentChannel {
+  DIRECTO_AL_PROPIETARIO
+  VIA_AGENCIA
+}
+
+enum MaintenanceCategory {
+  PLOMERIA
+  ELECTRICO
+  AIRE_ACONDICIONADO
+  ELECTRODOMESTICO
+  ESTRUCTURAL
+  JARDINERIA
+  LIMPIEZA
+  SEGURIDAD
+  OTRO
+}
+
+enum MaintenancePriority {
+  BAJA
+  MEDIA
+  ALTA
+  URGENCIA
+}
+
+enum MaintenanceStatus {
+  REPORTADO
+  EN_REVISION
+  APROBADO_PROPIETARIO
+  EN_PROCESO
+  COMPLETADO
+  RECHAZADO
+  CERRADO
+}
+
+enum ViewingStatus {
+  AGENDADA
+  CONFIRMADA
+  REALIZADA
+  CANCELADA
+  NO_SHOW
+  REAGENDADA
+}
+
+enum InterestLevel {
+  MUY_ALTO
+  ALTO
+  MEDIO
+  BAJO
+  NULO
+}
+
+enum OfferKind {
+  CARTA_OFERTA
+  APARTADO
+  OFERTA_FIRME
+}
+
+enum OfferPaymentMethod {
+  CONTADO
+  CREDITO_BANCARIO
+  CREDITO_INFONAVIT
+  CREDITO_FOVISSSTE
+  MIXTO
+}
+
+enum OfferStatus {
+  ENVIADA
+  EN_REVISION
+  ACEPTADA
+  CONTRAOFERTA
+  RECHAZADA
+  EXPIRADA
+  CANCELADA
+}
+
+enum InteractionKind {
+  WHATSAPP
+  LLAMADA
+  EMAIL
+  REUNION
+  VISITA_OFICINA
+  VISITA_PROPIEDAD
+  MENSAJE_PORTAL
+  NOTA_INTERNA
+  TAREA_COMPLETADA
+  EVENTO_SISTEMA
+}
+
+enum InteractionDirection {
+  ENTRANTE
+  SALIENTE
+  INTERNA
+  AUTOMATICA
+}
+
+enum TaskPriority {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum TaskStatus {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADA
+  CANCELADA
+  SNOOZED
+}
+
+enum MatchStatus {
+  PROPUESTO
+  VISTO_POR_AGENTE
+  ENVIADO_AL_LEAD
+  LEAD_INTERESADO
+  LEAD_DESCARTO
+  CONVERTIDO_EN_VISITA
+}
+
+enum TagKind {
+  LEAD
+  CLIENT
+  OWNER
+  PROPERTY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationEvent {
+  NEW_LEAD
+  LEAD_REPLY
+  VIEWING_REMINDER
+  CONTRACT_EXPIRING
+  PAYMENT_DUE
+  MAINTENANCE_REQUEST
+  DAILY_DIGEST
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  ASSIGN
+  EXPORT
+}
+
+// ============================================================================
+// ORGANIZATION (tenant raíz)
+// ============================================================================
+
+/// Inmobiliaria. Tenant raíz: todo cuelga de aquí por organizationId.
+model Organization {
+  id                 String             @id @default(cuid())
+  name               String
+  /// slug único para subdominios tipo `agencia.crm.mx`
+  slug               String             @unique
+  logoUrl            String?
+  /// color hex para white-label suave (ej "#C9A961")
+  primaryColor       String?            @default("#C9A961")
+  phone              String?
+  email              String?
+  addressLine        String?
+  city               String?            @default("Hermosillo")
+  state              String?            @default("Sonora")
+  subscriptionPlan   SubscriptionPlan   @default(TRIAL)
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  trialEndsAt        DateTime?
+  /// Stripe customer/subscription ids — no almacenamos métodos de pago; Stripe lo hace.
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  /// Currentperiodend de la suscripción (espejo de Stripe, para UI sin viajar a Stripe)
+  subscriptionCurrentPeriodEnd DateTime?
+  /// Zona horaria de la organización. Default America/Hermosillo.
+  timezone             String? @default("America/Hermosillo")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  users               User[]
+  owners              Owner[]
+  leads               Lead[]
+  clients             Client[]
+  properties          Property[]
+  contracts           PropertyContract[]
+  rentals             Rental[]
+  viewings            Viewing[]
+  offers              Offer[]
+  interactions        Interaction[]
+  tasks               Task[]
+  matches             MatchSuggestion[]
+  tags                Tag[]
+  auditLogs           AuditLog[]
+  maintenanceRequests MaintenanceRequest[]
+  whatsappAccount     WhatsappAccount?
+  whatsappTemplates   WhatsappTemplate[]
+  portalSessions      PortalSession[]
+}
+
+// ============================================================================
+// USERS (staff de la agencia)
+// ============================================================================
+
+/// Usuario interno de la agencia (broker, agente, admin, asistente).
+model User {
+  id                   String             @id @default(cuid())
+  organizationId       String
+  email                String             @unique
+  name                 String
+  avatarUrl            String?
+  phone                String?
+  passwordHash         String
+  role                 UserRole           @default(AGENT)
+  isActive             Boolean            @default(true)
+  lastLoginAt          DateTime?
+  /// % default de comisión del agente en una operación — sobreescribible por contrato
+  commissionDefaultPct Decimal            @default(50.0) @db.Decimal(5, 2)
+  /// especialidades del agente por categoría de inmueble
+  specialties          PropertyCategory[]
+  /// zonas de trabajo, texto libre ("Las Quintas", "Country Club", ...)
+  workingZones         String[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leadsAssigned       Lead[]                   @relation("LeadAssignedAgent")
+  propertiesAssigned  Property[]               @relation("PropertyAssignedAgent")
+  contractsManaged    PropertyContract[]       @relation("ContractAgent")
+  rentalsManaged      Rental[]                 @relation("RentalAgent")
+  viewings            Viewing[]                @relation("ViewingAgent")
+  offers              Offer[]                  @relation("OfferAgent")
+  interactionsCreated Interaction[]            @relation("InteractionCreatedBy")
+  tasksAssigned       Task[]                   @relation("TaskAssignedTo")
+  tasksCreated        Task[]                   @relation("TaskCreatedBy")
+  maintenanceAssigned MaintenanceRequest[]     @relation("MaintenanceAssigned")
+  auditLogs           AuditLog[]
+  notificationPrefs   NotificationPreference[]
+
+  @@index([organizationId])
+  @@index([organizationId, role])
+  @@index([organizationId, isActive])
+}
+
+// ============================================================================
+// OWNER (propietario del bien — distinto de Client y de User)
+// ============================================================================
+
+/// Propietario de uno o más inmuebles. NO es staff, NO es lead.
+model Owner {
+  id                      String         @id @default(cuid())
+  organizationId          String
+  firstName               String
+  lastName                String
+  /// RFC no se valida ni se usa fiscalmente — sólo referencia
+  rfc                     String?
+  email                   String?
+  phone                   String?
+  whatsapp                String?
+  preferredContactChannel ContactChannel @default(WHATSAPP)
+  addressLine             String?
+  city                    String?
+  state                   String?
+  postalCode              String?
+  bankName                String?
+  /// sólo últimos 4 dígitos para identificar la cuenta — nunca CLABE completa
+  accountLast4            String?
+  notes                   String?
+  portalAccessEnabled     Boolean        @default(false)
+  /// magic-link token para login del portal del propietario
+  portalAccessToken       String?        @unique
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  deletedAt               DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  properties   Property[]
+  contracts    PropertyContract[] @relation("ContractOwner")
+  rentals      Rental[]           @relation("RentalOwner")
+  tags         OwnerTag[]
+  interactions Interaction[]      @relation("InteractionOwner")
+
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, lastName, firstName])
+}
+
+// ============================================================================
+// LEAD (prospecto — comprador o inquilino potencial)
+// ============================================================================
+
+/// Prospecto (aún no cerró operación). Si convierte, se crea un Client.
+model Lead {
+  id                      String             @id @default(cuid())
+  organizationId          String
+  firstName               String
+  lastName                String
+  email                   String?
+  phone                   String?
+  whatsapp                String?
+  preferredContactChannel ContactChannel     @default(WHATSAPP)
+  preferredContactTime    ContactTime        @default(ANYTIME)
+  intent                  LeadIntent
+  propertyTypeInterests   PropertyCategory[]
+  budgetMin               Decimal?           @db.Decimal(12, 2)
+  budgetMax               Decimal?           @db.Decimal(12, 2)
+  currency                Currency           @default(MXN)
+  desiredZones            String[]
+  minBedrooms             Int?
+  minBathrooms            Int?
+  minParkingSpaces        Int?
+  minAreaM2               Int?
+  /// características indispensables ("alberca", "amueblado", "pet-friendly")
+  mustHaves               String[]
+  /// deseables pero no bloqueantes
+  niceToHaves             String[]
+  source                  LeadSource
+  sourceDetail            String?
+  utmCampaign             String?
+  utmMedium               String?
+  utmContent              String?
+  status                  LeadStatus         @default(NUEVO)
+  lostReason              String?
+  lostReasonDetail        String?
+  /// 0-100 calculado por heurística (presupuesto + completitud + engagement)
+  qualificationScore      Int?
+  assignedAgentId         String?
+  firstContactAt          DateTime?
+  lastContactAt           DateTime?
+  nextFollowUpAt          DateTime?
+  /// si convirtió, apunta al Client resultante
+  convertedToClientId     String?            @unique
+  notes                   String?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  deletedAt               DateTime?
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedAgent     User?        @relation("LeadAssignedAgent", fields: [assignedAgentId], references: [id])
+  convertedToClient Client?      @relation("LeadConverted", fields: [convertedToClientId], references: [id])
+
+  viewings     Viewing[]
+  offers       Offer[]
+  matches      MatchSuggestion[]
+  tasks        Task[]
+  tags         LeadTag[]
+  interactions Interaction[]     @relation("InteractionLead")
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, assignedAgentId])
+  @@index([organizationId, nextFollowUpAt])
+  @@index([organizationId, deletedAt])
+}
+
+// ============================================================================
+// CLIENT (prospecto que ya concretó operación, o propietario-cliente)
+// ============================================================================
+
+/// Cliente confirmado. Distinto de Lead (que aún no concreta) y de Owner (dueño del bien).
+model Client {
+  id                  String     @id @default(cuid())
+  organizationId      String
+  /// si vino de un lead, lo referenciamos para trazabilidad
+  leadId              String?
+  type                ClientType
+  firstName           String
+  lastName            String
+  email               String?
+  phone               String?
+  whatsapp            String?
+  /// para retention marketing (saludo de cumpleaños, ofertas)
+  birthday            DateTime?
+  /// total de operaciones cerradas (ventas + rentas) — recalculado
+  totalOperations     Int        @default(0)
+  /// LTV en MXN — suma de rentas cobradas + comisiones — recalculado
+  lifetimeValueMxn    Decimal    @default(0) @db.Decimal(14, 2)
+  notes               String?
+  portalAccessEnabled Boolean    @default(false)
+  portalAccessToken   String?    @unique
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  deletedAt           DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leadOrigin          Lead?                @relation("LeadConverted")
+  rentalsAsTenant     Rental[]             @relation("RentalTenant")
+  contractsAsClient   PropertyContract[]   @relation("ContractClient")
+  viewings            Viewing[]
+  offers              Offer[]
+  tasks               Task[]               @relation("TaskClient")
+  tags                ClientTag[]
+  interactions        Interaction[]        @relation("InteractionClient")
+  maintenanceReported MaintenanceRequest[] @relation("MaintenanceReporter")
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([organizationId, deletedAt])
+}
+
+// ============================================================================
+// PROPERTY (inventario de inmuebles)
+// ============================================================================
+
+/// Inmueble. Core del sistema: toda operación gira en torno a Property.
+model Property {
+  id                String             @id @default(cuid())
+  organizationId    String
+  /// code auto-generado, único por org (ej INM-2026-0001). Se usa en letreros y WhatsApp.
+  code              String
+  title             String
+  slug              String
+  description       String             @db.Text
+  transactionType   TransactionType
+  category          PropertyCategory
+  /// subcategoría libre ("depto en torre", "casa en condominio cerrado")
+  subcategory       String?
+  status            PropertyStatus     @default(BORRADOR)
+
+  priceSale         Decimal?           @db.Decimal(12, 2)
+  /// renta mensual
+  priceRent         Decimal?           @db.Decimal(12, 2)
+  maintenanceFee    Decimal?           @db.Decimal(12, 2)
+  currency          Currency           @default(MXN)
+
+  areaTotalM2       Decimal?           @db.Decimal(10, 2)
+  areaBuiltM2       Decimal?           @db.Decimal(10, 2)
+  bedrooms          Int?
+  bathrooms         Int?
+  halfBathrooms     Int?
+  parkingSpaces     Int?
+  floors            Int?
+  yearBuilt         Int?
+
+  isFurnished       Boolean            @default(false)
+  acceptsPets       Boolean            @default(false)
+  hasPool           Boolean            @default(false)
+  hasGarden         Boolean            @default(false)
+  hasStudy          Boolean            @default(false)
+  hasServiceRoom    Boolean            @default(false)
+  amenities         String[]
+  conservation      ConservationState?
+
+  addressStreet     String?
+  addressNumber     String?
+  addressInterior   String?
+  neighborhood      String?
+  city              String?
+  state             String?
+  postalCode        String?
+  latitude          Decimal?           @db.Decimal(10, 7)
+  longitude         Decimal?           @db.Decimal(10, 7)
+  /// si true, en listados públicos se oculta calle+número (sólo se muestra la colonia)
+  hideExactAddress  Boolean            @default(true)
+
+  videoUrl          String?
+  virtualTourUrl    String?
+  coverImageUrl     String?
+
+  ownerId           String
+  /// mandato de captación vigente (si hay)
+  captureContractId String?            @unique
+
+  /// portales donde está publicado
+  publishedToPortals String[]
+  publishedAt       DateTime?
+  /// días en el mercado desde publishedAt (se mantiene por background job)
+  daysOnMarket      Int?
+  viewsCount        Int                @default(0)
+  inquiriesCount    Int                @default(0)
+
+  assignedAgentId   String?
+  /// notas sólo visibles para staff interno — NUNCA exponer en portales
+  internalNotes     String?            @db.Text
+  /// descripción saneada para portales y link público compartible
+  publicDescription String?            @db.Text
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner            Owner              @relation(fields: [ownerId], references: [id])
+  captureContract  PropertyContract?  @relation("PropertyCaptureContract", fields: [captureContractId], references: [id])
+  assignedAgent    User?              @relation("PropertyAssignedAgent", fields: [assignedAgentId], references: [id])
+
+  images      PropertyImage[]
+  documents   PropertyDocument[]
+  contracts   PropertyContract[]       @relation("PropertyContracts")
+  rentals     Rental[]
+  viewings    Viewing[]
+  offers      Offer[]
+  matches     MatchSuggestion[]
+  tasks       Task[]                   @relation("TaskProperty")
+  tags        PropertyTag[]
+  interactions Interaction[]           @relation("InteractionProperty")
+  maintenance MaintenanceRequest[]
+
+  @@unique([organizationId, code])
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, assignedAgentId])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, transactionType, status])
+  @@index([organizationId, category, status])
+  @@index([organizationId, deletedAt])
+  // Nota: índice GIN trigram para full-text se crea manualmente en la migración
+}
+
+/// Imagen de propiedad. `isPublic=false` para fotos internas (inspecciones, defectos).
+model PropertyImage {
+  id           String   @id @default(cuid())
+  propertyId   String
+  url          String
+  thumbnailUrl String?
+  altText      String?
+  order        Int      @default(0)
+  isCover      Boolean  @default(false)
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([propertyId, order])
+}
+
+/// Documento de la propiedad (escritura, plano, PDF del predial).
+model PropertyDocument {
+  id                    String               @id @default(cuid())
+  propertyId            String
+  label                 String
+  url                   String
+  type                  PropertyDocumentType
+  /// si true, el propietario lo ve en su portal
+  isPublicToOwnerPortal Boolean              @default(false)
+  uploadedAt            DateTime             @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([propertyId, type])
+}
+
+// ============================================================================
+// CONTRATOS (tracking — no generación legal)
+// ============================================================================
+
+/// Contrato de cualquier tipo (mandato / arrendamiento / compraventa / carta-oferta).
+/// NO generamos el PDF; sólo trackeamos metadatos y enlazamos al documento externo.
+model PropertyContract {
+  id                    String         @id @default(cuid())
+  organizationId        String
+  propertyId            String
+  contractKind          ContractKind
+  status                ContractStatus @default(BORRADOR)
+  startDate             DateTime
+  endDate               DateTime?
+  /// calculado: (endDate - startDate) en meses completos
+  durationMonths        Int?
+  ownerId               String?
+  clientId              String?
+  agentId               String?
+  /// % comisión acordada en el contrato
+  commissionPct         Decimal?       @db.Decimal(5, 2)
+  /// importe estimado de comisión (precio × %) — calculado al crear/editar
+  commissionAmount      Decimal?       @db.Decimal(12, 2)
+  /// precio de venta o renta mensual acordado según contractKind
+  agreedPrice           Decimal        @db.Decimal(12, 2)
+  /// depósito en garantía (sólo arrendamiento)
+  depositAmount         Decimal?       @db.Decimal(12, 2)
+  notes                 String?
+  /// URL al PDF firmado subido a mano (S3/GDrive); NO lo generamos
+  externalDocumentUrl   String?
+  /// días antes de endDate para avisar renovación
+  reminderDaysBeforeEnd Int            @default(30)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  property     Property     @relation("PropertyContracts", fields: [propertyId], references: [id])
+  owner        Owner?       @relation("ContractOwner", fields: [ownerId], references: [id])
+  client       Client?      @relation("ContractClient", fields: [clientId], references: [id])
+  agent        User?        @relation("ContractAgent", fields: [agentId], references: [id])
+
+  rentals           Rental[]
+  propertyAsCapture Property? @relation("PropertyCaptureContract")
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, propertyId])
+  @@index([organizationId, endDate])
+  @@index([organizationId, contractKind, status])
+}
+
+// ============================================================================
+// RENTAL (arrendamiento en curso)
+// ============================================================================
+
+/// Arrendamiento activo. Agrupa pagos mensuales y eventos de la renta.
+model Rental {
+  id              String       @id @default(cuid())
+  organizationId  String
+  propertyId      String
+  contractId      String       @unique
+  tenantClientId  String
+  ownerId         String
+  managingAgentId String?
+
+  monthlyRent     Decimal      @db.Decimal(12, 2)
+  currency        Currency     @default(MXN)
+  /// día del mes en que cae la renta (1-28 para evitar meses cortos)
+  paymentDueDay   Int
+
+  startDate       DateTime
+  endDate         DateTime
+  status          RentalStatus @default(ACTIVA)
+  /// depósito retenido por la agencia o propietario
+  depositHeld     Decimal?     @db.Decimal(12, 2)
+  /// inventario al entregar el inmueble: muebles, llaves, estado. JSON flexible.
+  inventoryList   Json?
+  /// servicios incluidos en la renta (["AGUA","GAS","INTERNET",...])
+  utilitiesIncluded String[]
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  property     Property         @relation(fields: [propertyId], references: [id])
+  contract     PropertyContract @relation(fields: [contractId], references: [id])
+  tenant       Client           @relation("RentalTenant", fields: [tenantClientId], references: [id])
+  owner        Owner            @relation("RentalOwner", fields: [ownerId], references: [id])
+  agent        User?            @relation("RentalAgent", fields: [managingAgentId], references: [id])
+
+  payments            RentalPayment[]
+  maintenanceRequests MaintenanceRequest[]
+  tasks               Task[]               @relation("TaskRental")
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, endDate])
+  @@index([organizationId, tenantClientId])
+  @@index([organizationId, ownerId])
+}
+
+/// Tracking de pago mensual de renta. NO procesamos el cobro — sólo lo registramos.
+model RentalPayment {
+  id                 String               @id @default(cuid())
+  rentalId           String
+  /// período en formato YYYY-MM ("2026-04")
+  periodMonth        String
+  dueDate            DateTime
+  amountDue          Decimal              @db.Decimal(12, 2)
+  amountPaid         Decimal              @default(0) @db.Decimal(12, 2)
+  paidAt             DateTime?
+  status             RentalPaymentStatus  @default(PENDIENTE)
+  /// referencia del pago reportada por inquilino/propietario (número de transferencia)
+  paymentReference   String?
+  /// algunas agencias intermedian el cobro, otras sólo trackean
+  receivedBy         RentalPaymentChannel @default(DIRECTO_AL_PROPIETARIO)
+  remindersSentCount Int                  @default(0)
+  notes              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  rental Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+
+  @@unique([rentalId, periodMonth])
+  @@index([rentalId])
+  @@index([rentalId, status])
+  @@index([dueDate, status])
+}
+
+// ============================================================================
+// MAINTENANCE — reportes del inquilino
+// ============================================================================
+
+/// Solicitud de mantenimiento reportada por el inquilino. Flujo: reporte → aprobación propietario → ejecución.
+model MaintenanceRequest {
+  id                 String              @id @default(cuid())
+  organizationId     String
+  rentalId           String
+  propertyId         String
+  reportedByClientId String
+  title              String
+  description        String              @db.Text
+  category           MaintenanceCategory
+  priority           MaintenancePriority @default(MEDIA)
+  status             MaintenanceStatus   @default(REPORTADO)
+  /// fotos que sube el inquilino al reportar
+  images             String[]
+  /// responsable interno (User). Vendor externo va en texto libre en internalNotes.
+  assignedToId       String?
+  estimatedCost      Decimal?            @db.Decimal(10, 2)
+  actualCost         Decimal?            @db.Decimal(10, 2)
+  paidByOwner        Boolean             @default(false)
+  paidByTenant       Boolean             @default(false)
+  /// detalles libres del split si es mixto
+  splitDetails       String?
+  resolvedAt         DateTime?
+  ownerNotifiedAt    DateTime?
+  ownerApprovedAt    DateTime?
+  internalNotes      String?
+  resolutionNotes    String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rental       Rental       @relation(fields: [rentalId], references: [id])
+  property     Property     @relation(fields: [propertyId], references: [id])
+  reporter     Client       @relation("MaintenanceReporter", fields: [reportedByClientId], references: [id])
+  assignedTo   User?        @relation("MaintenanceAssigned", fields: [assignedToId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, rentalId])
+  @@index([organizationId, priority, status])
+}
+
+// ============================================================================
+// VIEWINGS — visitas agendadas
+// ============================================================================
+
+/// Visita agendada a una propiedad por un lead o un cliente.
+model Viewing {
+  id                String         @id @default(cuid())
+  organizationId    String
+  propertyId        String
+  leadId            String?
+  clientId          String?
+  agentId           String
+  scheduledAt       DateTime
+  durationMinutes   Int            @default(45)
+  status            ViewingStatus  @default(AGENDADA)
+  /// nivel de interés capturado por el agente tras la visita
+  leadInterestLevel InterestLevel?
+  leadFeedback      String?
+  agentNotes        String?
+  meetingPoint      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  property     Property     @relation(fields: [propertyId], references: [id])
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  agent        User         @relation("ViewingAgent", fields: [agentId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, scheduledAt])
+  @@index([organizationId, agentId, scheduledAt])
+  @@index([propertyId])
+}
+
+// ============================================================================
+// OFFERS — ofertas, apartados, cartas-oferta
+// ============================================================================
+
+/// Oferta formal sobre una propiedad. Puede derivar en contrato.
+model Offer {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  propertyId            String
+  leadId                String?
+  clientId              String?
+  offerKind             OfferKind
+  offeredAmount         Decimal            @db.Decimal(12, 2)
+  currency              Currency           @default(MXN)
+  offeredPaymentMethod  OfferPaymentMethod
+  conditions            String?            @db.Text
+  /// monto del apartado entregado como garantía (sólo OfferKind=APARTADO)
+  apartadoAmount        Decimal?           @db.Decimal(12, 2)
+  status                OfferStatus        @default(ENVIADA)
+  counterofferFromOwner Decimal?           @db.Decimal(12, 2)
+  expiresAt             DateTime?
+  agentId               String
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  property     Property     @relation(fields: [propertyId], references: [id])
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  agent        User         @relation("OfferAgent", fields: [agentId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, propertyId])
+  @@index([organizationId, expiresAt])
+}
+
+// ============================================================================
+// INTERACTION — timeline unificado
+// ============================================================================
+
+/// Toda comunicación/evento relevante. Alimenta el timeline de cada lead/cliente/propiedad.
+model Interaction {
+  id                String               @id @default(cuid())
+  organizationId    String
+  kind              InteractionKind
+  direction         InteractionDirection
+  relatedLeadId     String?
+  relatedClientId   String?
+  relatedOwnerId    String?
+  relatedPropertyId String?
+  summary           String
+  body              String?              @db.Text
+  occurredAt        DateTime
+  /// duración en segundos (para llamadas)
+  durationSeconds   Int?
+  createdById       String?
+  /// ID del mensaje en el canal origen — dedupe de WhatsApp/email entrante
+  channelMessageId  String?
+  attachments       String[]
+  createdAt         DateTime             @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  relatedLead     Lead?        @relation("InteractionLead", fields: [relatedLeadId], references: [id])
+  relatedClient   Client?      @relation("InteractionClient", fields: [relatedClientId], references: [id])
+  relatedOwner    Owner?       @relation("InteractionOwner", fields: [relatedOwnerId], references: [id])
+  relatedProperty Property?    @relation("InteractionProperty", fields: [relatedPropertyId], references: [id])
+  createdBy       User?        @relation("InteractionCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([organizationId, channelMessageId])
+  @@index([organizationId])
+  @@index([organizationId, occurredAt])
+  @@index([organizationId, relatedLeadId, occurredAt])
+  @@index([organizationId, relatedClientId, occurredAt])
+  @@index([organizationId, relatedPropertyId, occurredAt])
+}
+
+// ============================================================================
+// TASK — pendientes del agente
+// ============================================================================
+
+/// Tarea/pendiente para un agente (follow-up, llamada, envío de info, etc.).
+model Task {
+  id                String       @id @default(cuid())
+  organizationId    String
+  title             String
+  description       String?
+  relatedLeadId     String?
+  relatedClientId   String?
+  relatedPropertyId String?
+  relatedRentalId   String?
+  assignedToId      String
+  createdById       String
+  dueAt             DateTime?
+  priority          TaskPriority @default(MEDIA)
+  status            TaskStatus   @default(PENDIENTE)
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo      User         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdBy       User         @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  relatedLead     Lead?        @relation(fields: [relatedLeadId], references: [id])
+  relatedClient   Client?      @relation("TaskClient", fields: [relatedClientId], references: [id])
+  relatedProperty Property?    @relation("TaskProperty", fields: [relatedPropertyId], references: [id])
+  relatedRental   Rental?      @relation("TaskRental", fields: [relatedRentalId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, assignedToId, status])
+  @@index([organizationId, dueAt])
+}
+
+// ============================================================================
+// MATCH SUGGESTION — match propiedad ↔ lead
+// ============================================================================
+
+/// Sugerencia de match propiedad↔lead generada por el matcher. Un agente la revisa y decide enviarla.
+model MatchSuggestion {
+  id              String      @id @default(cuid())
+  organizationId  String
+  leadId          String
+  propertyId      String
+  /// score 0-100: mezcla price-fit, zone-fit, bedrooms-fit, must-haves-fit, recency
+  score           Decimal     @db.Decimal(5, 2)
+  /// etiquetas de las razones que contribuyeron al match (ej ["PRICE_FIT","ZONE_FIT"])
+  matchReasons    String[]
+  status          MatchStatus @default(PROPUESTO)
+  viewedByAgentAt DateTime?
+  sentToLeadAt    DateTime?
+  leadRespondedAt DateTime?
+  createdAt       DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead         @relation(fields: [leadId], references: [id])
+  property     Property     @relation(fields: [propertyId], references: [id])
+
+  @@unique([leadId, propertyId])
+  @@index([organizationId])
+  @@index([organizationId, leadId, score])
+  @@index([organizationId, status])
+}
+
+// ============================================================================
+// TAGS (many-to-many por entidad)
+// ============================================================================
+
+/// Etiqueta reutilizable. `kind` separa facetas (etiquetas de lead vs de property, etc.).
+model Tag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  color          String   @default("#64748b")
+  kind           TagKind
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leadTags     LeadTag[]
+  clientTags   ClientTag[]
+  ownerTags    OwnerTag[]
+  propertyTags PropertyTag[]
+
+  @@unique([organizationId, kind, name])
+  @@index([organizationId, kind])
+}
+
+model LeadTag {
+  leadId String
+  tagId  String
+  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+}
+
+model ClientTag {
+  clientId String
+  tagId    String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+}
+
+model OwnerTag {
+  ownerId String
+  tagId   String
+  owner   Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([ownerId, tagId])
+}
+
+model PropertyTag {
+  propertyId String
+  tagId      String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, tagId])
+}
+
+// ============================================================================
+// NOTIFICATION PREFERENCES
+// ============================================================================
+
+/// Preferencia de canal por evento por usuario. Si no existe registro, se asume default del sistema.
+model NotificationPreference {
+  id      String              @id @default(cuid())
+  userId  String
+  channel NotificationChannel
+  event   NotificationEvent
+  enabled Boolean             @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel, event])
+  @@index([userId])
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+/// Registro inmutable de acciones sensibles por tenant. `changes` guarda el diff antes/después.
+model AuditLog {
+  id             String      @id @default(cuid())
+  organizationId String
+  userId         String?
+  entity         String
+  entityId       String
+  action         AuditAction
+  changes        Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, entity, entityId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId])
+}
+
+// ============================================================================
+// WHATSAPP — cuenta y plantillas por organización
+// ============================================================================
+
+enum WhatsappTemplateStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
+  DISABLED
+}
+
+enum WhatsappTemplateCategory {
+  UTILITY
+  MARKETING
+  AUTHENTICATION
+}
+
+enum WhatsappHeaderMediaType {
+  NONE
+  TEXT
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+/// Credenciales de WhatsApp Business Cloud API por organización.
+/// `accessTokenEncrypted` nunca se devuelve al cliente — sólo el server lo desencripta.
+model WhatsappAccount {
+  id                   String   @id @default(cuid())
+  organizationId       String   @unique
+  phoneNumberId        String
+  wabaId               String?
+  displayPhoneNumber   String?
+  /// token de acceso cifrado AES-256 con `WHATSAPP_TOKEN_ENCRYPTION_KEY`
+  accessTokenEncrypted String   @db.Text
+  /// webhook secret único por org para validar firma en /api/webhooks/whatsapp
+  webhookVerifyToken   String   @unique
+  isActive             Boolean  @default(true)
+  connectedAt          DateTime @default(now())
+  lastMessageAt        DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// Plantilla aprobada con Meta para envíos fuera de la ventana de 24h.
+/// Variables son {{1}}, {{2}}, etc. según placeholders del body.
+model WhatsappTemplate {
+  id              String                   @id @default(cuid())
+  organizationId  String
+  name            String
+  category        WhatsappTemplateCategory
+  status          WhatsappTemplateStatus   @default(DRAFT)
+  language        String                   @default("es_MX")
+  headerMediaType WhatsappHeaderMediaType  @default(NONE)
+  headerText      String?
+  bodyText        String                   @db.Text
+  footerText      String?
+  /// nombres lógicos de las variables (["lead_name","property_code"])
+  variables       String[]
+  /// payload tal como Meta lo devuelve — útil para debug
+  metaPayload     Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name, language])
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+// ============================================================================
+// PORTAL SESSIONS — sesiones de portales Owner / Tenant
+// ============================================================================
+
+enum PortalKind {
+  OWNER
+  TENANT
+}
+
+/// Sesión del portal (owner o tenant). El magic-link JWT se canjea aquí por una sesión de 30 días.
+model PortalSession {
+  id             String     @id @default(cuid())
+  organizationId String
+  kind           PortalKind
+  /// ownerId si kind=OWNER, clientId si kind=TENANT
+  subjectId      String
+  token          String     @unique
+  expiresAt      DateTime
+  lastUsedAt     DateTime?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([kind, subjectId])
+  @@index([expiresAt])
+}

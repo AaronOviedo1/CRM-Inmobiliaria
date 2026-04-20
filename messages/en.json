@@ -1,0 +1,68 @@
+{
+  "app": {
+    "name": "Real Estate CRM",
+    "search": "Search properties, leads, clients…",
+    "newButton": "New",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "noResults": "No results",
+    "back": "Back",
+    "next": "Next",
+    "prev": "Previous",
+    "confirm": "Confirm",
+    "search_placeholder": "Search…"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "owners": "Owners",
+    "leads": "Leads",
+    "clients": "Clients",
+    "contracts": "Contracts",
+    "rentals": "Rentals",
+    "maintenance": "Maintenance",
+    "viewings": "Viewings",
+    "matching": "Matching",
+    "communication": "Inbox",
+    "tasks": "Tasks",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening",
+    "activeProperties": "Active properties",
+    "newLeads": "New leads",
+    "todayViewings": "Today's viewings",
+    "pendingPayments": "Rent payments due this week",
+    "urgentMaintenance": "Urgent maintenance tickets",
+    "yourTasks": "Your tasks today",
+    "recentActivity": "Recent team activity",
+    "expiringContracts": "Contracts expiring (30 days)"
+  },
+  "properties": {
+    "title": "Properties",
+    "newProperty": "New property",
+    "filters": "Filters",
+    "tabs": {
+      "info": "Info",
+      "viewings": "Viewings",
+      "offers": "Offers",
+      "matches": "Matches",
+      "documents": "Documents",
+      "history": "History",
+      "rental": "Rental"
+    }
+  },
+  "leads": {
+    "title": "Leads",
+    "newLead": "New lead",
+    "noFollowUp": "No follow-up",
+    "overdue": "Overdue"
+  }
+}

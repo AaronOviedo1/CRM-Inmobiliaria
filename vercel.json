@@ -1,0 +1,32 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/rental-payments",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/rental-reminders",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/contracts-expiring",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/viewing-reminders",
+      "schedule": "*/60 * * * *"
+    },
+    {
+      "path": "/api/cron/matching",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/daily-digest",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/retention",
+      "schedule": "0 14 * * *"
+    }
+  ]
+}

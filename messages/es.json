@@ -1,0 +1,68 @@
+{
+  "app": {
+    "name": "Inmobiliaria CRM",
+    "search": "Buscar propiedades, leads, clientes…",
+    "newButton": "Nuevo",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saveChanges": "Guardar cambios",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "loading": "Cargando…",
+    "noResults": "Sin resultados",
+    "back": "Volver",
+    "next": "Siguiente",
+    "prev": "Anterior",
+    "confirm": "Confirmar",
+    "search_placeholder": "Buscar…"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "properties": "Propiedades",
+    "owners": "Propietarios",
+    "leads": "Leads",
+    "clients": "Clientes",
+    "contracts": "Contratos",
+    "rentals": "Rentas",
+    "maintenance": "Mantenimientos",
+    "viewings": "Visitas",
+    "matching": "Matching",
+    "communication": "Comunicación",
+    "tasks": "Tareas",
+    "reports": "Reportes",
+    "settings": "Ajustes"
+  },
+  "dashboard": {
+    "greeting_morning": "Buenos días",
+    "greeting_afternoon": "Buenas tardes",
+    "greeting_evening": "Buenas noches",
+    "activeProperties": "Propiedades activas",
+    "newLeads": "Leads nuevos",
+    "todayViewings": "Visitas de hoy",
+    "pendingPayments": "Pagos pendientes esta semana",
+    "urgentMaintenance": "Mantenimientos urgentes",
+    "yourTasks": "Tus tareas de hoy",
+    "recentActivity": "Actividad reciente del equipo",
+    "expiringContracts": "Contratos próximos a vencer (30 días)"
+  },
+  "properties": {
+    "title": "Propiedades",
+    "newProperty": "Nueva propiedad",
+    "filters": "Filtros",
+    "tabs": {
+      "info": "Información",
+      "viewings": "Visitas",
+      "offers": "Ofertas",
+      "matches": "Matches",
+      "documents": "Documentos",
+      "history": "Historial",
+      "rental": "Renta"
+    }
+  },
+  "leads": {
+    "title": "Leads",
+    "newLead": "Nuevo lead",
+    "noFollowUp": "Sin follow-up",
+    "overdue": "Vencido"
+  }
+}
