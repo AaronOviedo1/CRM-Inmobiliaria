@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/common/page-header";
-import { PropertyMap } from "@/components/property/property-map";
+import { PropertyGoogleMap } from "@/components/property/property-google-map";
 import { PropertyFilters } from "@/components/property/property-filters";
 import { requireTenantContext } from "@/lib/auth/session";
 import { listProperties } from "@/lib/repos/properties";
@@ -12,7 +12,17 @@ interface Props {
 export default async function PropiedadesMapaPage({ searchParams }: Props) {
   const ctx = await requireTenantContext();
   const raw = await searchParams;
-  const filters = PropertyFiltersSchema.parse({ q: raw.q, status: raw.status, category: raw.category, pageSize: 100 });
+  const filters = PropertyFiltersSchema.parse({
+    q: raw.q,
+    status: raw.status,
+    category: raw.category,
+    transactionType: raw.transactionType,
+    neighborhood: raw.neighborhood,
+    minPrice: raw.minPrice,
+    maxPrice: raw.maxPrice,
+    minBedrooms: raw.minBedrooms,
+    pageSize: 100,
+  });
   const { rows: properties } = await listProperties(ctx, filters);
 
   return (
@@ -23,7 +33,7 @@ export default async function PropiedadesMapaPage({ searchParams }: Props) {
         description="Click en cualquier pin para ver el preview. Zonas con halo = propiedades destacadas."
       />
       <PropertyFilters view="map" />
-      <PropertyMap properties={properties as any} />
+      <PropertyGoogleMap properties={properties as any} />
     </div>
   );
 }

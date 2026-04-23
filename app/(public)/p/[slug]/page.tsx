@@ -29,7 +29,7 @@ export default async function PublicPropertyPage({ params }: Props) {
   const p = await prisma.property.findFirst({
     where: { slug, status: "DISPONIBLE" as any, deletedAt: null },
     include: {
-      images: { where: { isPublic: true }, orderBy: { sortOrder: "asc" } },
+      images: { where: { isPublic: true }, orderBy: { order: "asc" } },
       organization: { select: { name: true, slug: true } },
     },
   });

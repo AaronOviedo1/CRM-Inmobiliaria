@@ -21,6 +21,7 @@ import { formatArea, formatMoney, formatMoneyCompact } from "@/lib/format";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
 import { PropertyGallery } from "./property-gallery";
+import { PropertyStatusMenu } from "./property-status-menu";
 
 interface Props {
   property: Property;
@@ -34,9 +35,7 @@ export function PropertyHero({ property }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone={PROPERTY_STATUS_TONE[property.status]}>
-              {PROPERTY_STATUS_LABEL[property.status]}
-            </StatusPill>
+            <PropertyStatusMenu propertyId={property.id} status={property.status} />
             <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold-faint px-2 py-0.5 text-xs text-gold">
               {TRANSACTION_TYPE_LABEL[property.transactionType]}
             </span>
