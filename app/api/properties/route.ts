@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       postalCode: input.postalCode ?? null,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
-      hideExactAddress: true,
+      hideExactAddress: input.hideExactAddress ?? true,
 
       virtualTourUrl: input.virtualTourUrl ?? null,
       coverImageUrl: firstImageUrl,

@@ -136,6 +136,7 @@ export const PropertyWizardCreateSchema = z.object({
   postalCode: z.string().max(10).optional(),
   latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
   longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
+  hideExactAddress: z.boolean().optional(),
 
   virtualTourUrl: z
     .string()

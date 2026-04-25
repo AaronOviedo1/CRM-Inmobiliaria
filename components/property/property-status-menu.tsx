@@ -20,6 +20,7 @@ import {
   PROPERTY_STATUS_TONE,
 } from "@/lib/labels";
 import { PropertyStatus } from "@/lib/enums";
+import { ALLOWED_PROPERTY_STATUS_TRANSITIONS } from "@/lib/workflows/property-status";
 
 const STATUS_OPTIONS: { value: keyof typeof PropertyStatus; label: string }[] =
   (Object.keys(PROPERTY_STATUS_LABEL) as (keyof typeof PropertyStatus)[]).map(
@@ -35,12 +36,24 @@ export function PropertyStatusMenu({ propertyId, status }: Props) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
 
+  const allowedTargets = React.useMemo(
+    () => new Set(ALLOWED_PROPERTY_STATUS_TRANSITIONS[status] ?? []),
+    [status],
+  );
+
   const change = async (next: keyof typeof PropertyStatus) => {
     if (next === status) return;
     setPending(true);
     try {
       const res = await changeStatusAction(propertyId, { status: next });
-      if (!res?.ok) throw new Error("No se pudo cambiar el status");
+      if (!res?.ok) {
+        if (res?.error === "INVALID_TRANSITION") {
+          throw new Error(
+            `No se puede pasar de ${PROPERTY_STATUS_LABEL[status]} a ${PROPERTY_STATUS_LABEL[next]}`,
+          );
+        }
+        throw new Error("No se pudo cambiar el status");
+      }
       toast.success(`Status actualizado a ${PROPERTY_STATUS_LABEL[next]}`);
       router.refresh();
     } catch (e) {
@@ -79,20 +92,30 @@ export function PropertyStatusMenu({ propertyId, status }: Props) {
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuLabel>Cambiar status</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {STATUS_OPTIONS.map((opt) => (
-            <DropdownMenuItem
-              key={opt.value}
-              disabled={opt.value === status || pending}
-              onSelect={() => change(opt.value)}
-            >
-              {opt.label}
-              {opt.value === status && (
-                <span className="ml-auto text-[10px] text-muted-foreground">
-                  actual
-                </span>
-              )}
-            </DropdownMenuItem>
-          ))}
+          {STATUS_OPTIONS.map((opt) => {
+            const isCurrent = opt.value === status;
+            const isAllowed = isCurrent || allowedTargets.has(opt.value);
+            if (!isAllowed) return null;
+            return (
+              <DropdownMenuItem
+                key={opt.value}
+                disabled={isCurrent || pending}
+                onSelect={() => change(opt.value)}
+              >
+                {opt.label}
+                {isCurrent && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    actual
+                  </span>
+                )}
+              </DropdownMenuItem>
+            );
+          })}
+          {allowedTargets.size === 0 && (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              Este estado es terminal.
+            </div>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

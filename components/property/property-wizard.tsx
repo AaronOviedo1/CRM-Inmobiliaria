@@ -37,48 +37,153 @@ const STEPS = [
 
 const DRAFT_KEY = "property-wizard-draft";
 
-export function PropertyWizard() {
+export type PropertyWizardInitial = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  transactionType: string;
+  category: string;
+  priceSale: number | null;
+  priceRent: number | null;
+  maintenanceFee: number | null;
+  commissionPct: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
+  areaTotalM2: number | null;
+  areaBuiltM2: number | null;
+  conservation: string | null;
+  isFurnished: boolean;
+  acceptsPets: boolean;
+  amenities: string[];
+  zone: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  hideExactAddress: boolean;
+  virtualTourUrl: string | null;
+  images: { url: string }[];
+};
+
+type FormState = {
+  category: string;
+  transactionType: string;
+  title: string;
+  description: string;
+  zone: string;
+  addressStreet: string;
+  addressNumber: string;
+  postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  hideExactAddress: boolean;
+  bedrooms: string;
+  bathrooms: string;
+  parkingSpaces: string;
+  areaTotalM2: string;
+  areaBuiltM2: string;
+  conservation: string;
+  priceSale: string;
+  priceRent: string;
+  maintenanceFee: string;
+  commission: string;
+  isFurnished: boolean;
+  acceptsPets: boolean;
+  amenities: string[];
+  images: { url: string }[];
+  virtualTourUrl: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  category: "CASA",
+  transactionType: "VENTA",
+  title: "",
+  description: "",
+  zone: "Las Quintas",
+  addressStreet: "",
+  addressNumber: "",
+  postalCode: "",
+  latitude: null,
+  longitude: null,
+  hideExactAddress: true,
+  bedrooms: "3",
+  bathrooms: "2",
+  parkingSpaces: "2",
+  areaTotalM2: "320",
+  areaBuiltM2: "220",
+  conservation: "BUENA",
+  priceSale: "4500000",
+  priceRent: "",
+  maintenanceFee: "",
+  commission: "5",
+  isFurnished: false,
+  acceptsPets: true,
+  amenities: ["Seguridad 24/7", "Jardín"],
+  images: [],
+  virtualTourUrl: "",
+};
+
+const numOrEmpty = (n: number | null | undefined) =>
+  n === null || n === undefined ? "" : String(n);
+
+function fromInitial(initial: PropertyWizardInitial): FormState {
+  return {
+    category: initial.category || "CASA",
+    transactionType: initial.transactionType || "VENTA",
+    title: initial.title ?? "",
+    description: initial.description ?? "",
+    zone: initial.zone ?? "",
+    addressStreet: initial.addressStreet ?? "",
+    addressNumber: initial.addressNumber ?? "",
+    postalCode: initial.postalCode ?? "",
+    latitude: initial.latitude,
+    longitude: initial.longitude,
+    hideExactAddress: initial.hideExactAddress,
+    bedrooms: numOrEmpty(initial.bedrooms),
+    bathrooms: numOrEmpty(initial.bathrooms),
+    parkingSpaces: numOrEmpty(initial.parkingSpaces),
+    areaTotalM2: numOrEmpty(initial.areaTotalM2),
+    areaBuiltM2: numOrEmpty(initial.areaBuiltM2),
+    conservation: initial.conservation ?? "BUENA",
+    priceSale: numOrEmpty(initial.priceSale),
+    priceRent: numOrEmpty(initial.priceRent),
+    maintenanceFee: numOrEmpty(initial.maintenanceFee),
+    commission: numOrEmpty(initial.commissionPct),
+    isFurnished: initial.isFurnished,
+    acceptsPets: initial.acceptsPets,
+    amenities: initial.amenities ?? [],
+    images: initial.images ?? [],
+    virtualTourUrl: initial.virtualTourUrl ?? "",
+  };
+}
+
+export function PropertyWizard({
+  initial,
+}: {
+  initial?: PropertyWizardInitial;
+} = {}) {
   const router = useRouter();
+  const isEdit = !!initial;
   const [step, setStep] = React.useState(1);
   const [saving, setSaving] = React.useState(false);
-  const [form, setForm] = React.useState({
-    category: "CASA",
-    transactionType: "VENTA",
-    title: "",
-    description: "",
-    zone: "Las Quintas",
-    addressStreet: "",
-    addressNumber: "",
-    postalCode: "",
-    latitude: null as number | null,
-    longitude: null as number | null,
-    bedrooms: "3",
-    bathrooms: "2",
-    parkingSpaces: "2",
-    areaTotalM2: "320",
-    areaBuiltM2: "220",
-    conservation: "BUENA",
-    priceSale: "4500000",
-    priceRent: "",
-    maintenanceFee: "",
-    commission: "5",
-    isFurnished: false,
-    acceptsPets: true,
-    amenities: ["Seguridad 24/7", "Jardín"],
-    images: [] as { url: string }[],
-    virtualTourUrl: "",
-  });
+  const [form, setForm] = React.useState<FormState>(
+    initial ? fromInitial(initial) : DEFAULT_FORM,
+  );
 
-  // Autosave draft local.
+  // Autosave draft local — solo en modo creación.
   React.useEffect(() => {
+    if (isEdit) return;
     const saved = typeof window !== "undefined" && localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
         setForm((f) => ({ ...f, ...JSON.parse(saved) }));
       } catch {}
     }
-  }, []);
+  }, [isEdit]);
   React.useEffect(() => {
+    if (isEdit) return;
     const t = setTimeout(() => {
       if (typeof window !== "undefined") {
         // Excluir imágenes del borrador: los data URLs pueden superar la cuota de localStorage.
@@ -89,7 +194,7 @@ export function PropertyWizard() {
       }
     }, 1000);
     return () => clearTimeout(t);
-  }, [form]);
+  }, [form, isEdit]);
 
   const next = () => setStep((s) => Math.min(STEPS.length, s + 1));
   const prev = () => setStep((s) => Math.max(1, s - 1));
@@ -123,11 +228,14 @@ export function PropertyWizard() {
         postalCode: form.postalCode,
         latitude: form.latitude,
         longitude: form.longitude,
+        hideExactAddress: form.hideExactAddress,
         virtualTourUrl: form.virtualTourUrl || undefined,
         images: form.images.map((i) => ({ url: i.url })),
       };
-      const res = await fetch("/api/properties", {
-        method: "POST",
+      const url = isEdit ? `/api/properties/${initial!.id}` : "/api/properties";
+      const method = isEdit ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -135,9 +243,14 @@ export function PropertyWizard() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error ?? `Error ${res.status}`);
       }
-      toast.success("Propiedad creada como borrador");
-      localStorage.removeItem(DRAFT_KEY);
-      router.push("/propiedades");
+      if (isEdit) {
+        toast.success("Cambios guardados");
+        router.push(`/propiedades/${initial!.id}`);
+      } else {
+        toast.success("Propiedad creada como borrador");
+        localStorage.removeItem(DRAFT_KEY);
+        router.push("/propiedades");
+      }
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "No se pudo guardar";
@@ -288,6 +401,11 @@ export function PropertyWizard() {
                       .join(", ")}
                   />
                 </div>
+                <SwitchRow
+                  label="Ocultar dirección exacta en anuncios públicos"
+                  checked={form.hideExactAddress}
+                  onChange={(v) => update("hideExactAddress", v)}
+                />
               </Step>
             )}
 
@@ -434,7 +552,13 @@ export function PropertyWizard() {
           <ArrowLeft className="h-4 w-4" /> Atrás
         </Button>
         <p className="text-xs text-muted-foreground">
-          Guardado automático: <span className="text-gold">on</span>
+          {isEdit ? (
+            <>Editando propiedad existente</>
+          ) : (
+            <>
+              Guardado automático: <span className="text-gold">on</span>
+            </>
+          )}
         </p>
         {step < STEPS.length ? (
           <Button onClick={next}>
@@ -442,7 +566,7 @@ export function PropertyWizard() {
           </Button>
         ) : (
           <Button onClick={finish} disabled={saving}>
-            {saving ? "Guardando…" : "Guardar propiedad"}
+            {saving ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar propiedad"}
             <Check className="h-4 w-4" />
           </Button>
         )}
