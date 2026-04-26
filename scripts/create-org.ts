@@ -66,7 +66,7 @@ async function main() {
           email: emailLower,
           name: adminName || adminEmail.split("@")[0]!,
           passwordHash: hash,
-          role: "AGENCY_ADMIN",
+          role: "ADMINISTRADOR",
         },
       },
     },

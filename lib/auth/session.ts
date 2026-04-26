@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { auth } from "./config";
 import type { UserRole } from "../enums";
 import type { TenantContext } from "../prisma";
 
@@ -9,34 +11,32 @@ export type SessionUser = {
   role: UserRole;
 };
 
-// TODO(backend): replace with real next-auth session check.
-// For mock preview, returns a fixed mock session so all pages render without redirecting.
-const MOCK_SESSION: SessionUser = {
-  id: "user_1",
-  email: "sofia@casadorada.mx",
-  name: "Sofía Encinas",
-  organizationId: "org_1",
-  role: "AGENT" as UserRole,
-};
-
 export async function getSession(): Promise<SessionUser | null> {
-  return MOCK_SESSION;
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return {
+    id: session.user.id,
+    email: session.user.email ?? "",
+    name: session.user.name ?? null,
+    organizationId: session.user.organizationId,
+    role: session.user.role,
+  };
 }
 
 export async function requireSession(): Promise<SessionUser> {
-  return MOCK_SESSION;
+  const user = await getSession();
+  if (!user) redirect("/login");
+  return user;
 }
 
 export async function requireTenantContext(): Promise<TenantContext> {
-  return { organizationId: MOCK_SESSION.organizationId, userId: MOCK_SESSION.id };
+  const user = await requireSession();
+  return { organizationId: user.organizationId, userId: user.id };
 }
 
 const ROLE_RANK: Record<UserRole, number> = {
-  SUPER_ADMIN: 100,
-  AGENCY_ADMIN: 80,
-  BROKER: 60,
-  AGENT: 40,
-  ASSISTANT: 20,
+  ADMINISTRADOR: 100,
+  ASESOR: 40,
 };
 
 export function canRole(have: UserRole, need: UserRole): boolean {
@@ -44,5 +44,7 @@ export function canRole(have: UserRole, need: UserRole): boolean {
 }
 
 export async function requireRole(need: UserRole): Promise<SessionUser> {
-  return MOCK_SESSION;
+  const user = await requireSession();
+  if (!canRole(user.role, need)) redirect("/dashboard");
+  return user;
 }

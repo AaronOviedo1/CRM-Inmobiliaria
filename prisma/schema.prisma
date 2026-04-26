@@ -32,11 +32,8 @@ enum SubscriptionStatus {
 }
 
 enum UserRole {
-  SUPER_ADMIN
-  AGENCY_ADMIN
-  BROKER
-  AGENT
-  ASSISTANT
+  ADMINISTRADOR
+  ASESOR
 }
 
 enum ContactChannel {
@@ -404,7 +401,7 @@ model User {
   avatarUrl            String?
   phone                String?
   passwordHash         String
-  role                 UserRole           @default(AGENT)
+  role                 UserRole           @default(ASESOR)
   isActive             Boolean            @default(true)
   lastLoginAt          DateTime?
   /// % default de comisión del agente en una operación — sobreescribible por contrato

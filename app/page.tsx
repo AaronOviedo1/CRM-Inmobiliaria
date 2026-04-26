@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
 
-export default function HomePage() {
-  // TODO(backend): si hay sesión → /dashboard; si no → /login (basado en cookies reales).
-  redirect("/dashboard");
+export default async function HomePage() {
+  const user = await getSession();
+  if (user) redirect("/dashboard");
+  redirect("/login");
 }

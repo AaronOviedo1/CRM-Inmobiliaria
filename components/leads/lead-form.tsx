@@ -156,7 +156,7 @@ export function LeadForm() {
                   <Select defaultValue={MOCK_USERS[2]!.id}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {MOCK_USERS.filter((u) => u.role !== "ASSISTANT").map((u) => (
+                      {MOCK_USERS.filter((u) => u.role === "ASESOR" || u.role === "ADMINISTRADOR").map((u) => (
                         <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                       ))}
                     </SelectContent>

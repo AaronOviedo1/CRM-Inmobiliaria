@@ -1,12 +1,12 @@
-/// Auto-asignación round-robin entre AGENTs activos.
+/// Auto-asignación round-robin entre ASESORs activos.
 ///
 /// Política:
-///   1) Filtra AGENTs activos de la org.
+///   1) Filtra ASESORs activos de la org.
 ///   2) Si el lead trae `desiredZones`, prefiere agentes cuyo `workingZones` se intersecte.
 ///   3) Si el lead trae `propertyTypeInterests`, prefiere agentes con esas especialidades.
 ///   4) Entre candidatos, round-robin: elige el agente con menos leads activos (status ≠ GANADO/PERDIDO).
 ///
-/// Fallback: si nadie matchea, elige el AGENT con menos leads globales.
+/// Fallback: si nadie matchea, elige el ASESOR con menos leads globales.
 
 import { prisma } from "../prisma";
 import type { Lead, User } from "@prisma/client";
@@ -16,7 +16,7 @@ export async function pickAgentForLead(
   lead: Pick<Lead, "desiredZones" | "propertyTypeInterests">,
 ): Promise<string | null> {
   const agents = await prisma.user.findMany({
-    where: { organizationId, role: "AGENT", isActive: true },
+    where: { organizationId, role: "ASESOR", isActive: true },
     select: {
       id: true,
       workingZones: true,

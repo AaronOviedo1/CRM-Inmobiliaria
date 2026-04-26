@@ -55,7 +55,7 @@ export async function updateContractAction(contractId: string, rawInput: unknown
 }
 
 export async function renewContractAction(rawInput: unknown) {
-  const u = await requireRole("BROKER");
+  const u = await requireRole("ADMINISTRADOR");
   const { contractId, newEndDate, newPrice } = ContractRenewSchema.parse(rawInput);
 
   const result = await renewContract(

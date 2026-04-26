@@ -99,12 +99,12 @@ export const MOCK_ORG: Organization = {
 // ─── Users ───────────────────────────────────────────────────────────
 
 const AGENT_PROFILES = [
-  { name: "Mariana Bringas", role: UserRole.AGENCY_ADMIN },
-  { name: "Rodrigo Encinas", role: UserRole.BROKER },
-  { name: "Fernanda Corral", role: UserRole.AGENT },
-  { name: "Alejandro Bours", role: UserRole.AGENT },
-  { name: "Paola Salazar", role: UserRole.AGENT },
-  { name: "Carlos Valenzuela", role: UserRole.ASSISTANT },
+  { name: "Mariana Bringas", role: UserRole.ADMINISTRADOR },
+  { name: "Rodrigo Encinas", role: UserRole.ADMINISTRADOR },
+  { name: "Fernanda Corral", role: UserRole.ASESOR },
+  { name: "Alejandro Bours", role: UserRole.ASESOR },
+  { name: "Paola Salazar", role: UserRole.ASESOR },
+  { name: "Carlos Valenzuela", role: UserRole.ASESOR },
 ];
 
 export const MOCK_USERS: User[] = AGENT_PROFILES.map((p, i) => ({

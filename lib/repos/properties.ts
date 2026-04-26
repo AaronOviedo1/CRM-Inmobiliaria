@@ -9,7 +9,7 @@ export async function getPropertyById(ctx: TenantContext, id: string) {
       OR: [{ id }, { slug: id }],
     },
     include: {
-      images: { orderBy: { sortOrder: "asc" } },
+      images: { orderBy: { order: "asc" } },
       documents: { orderBy: { uploadedAt: "desc" } },
       owner: { select: { id: true, firstName: true, lastName: true } },
       assignedAgent: { select: { id: true, name: true } },

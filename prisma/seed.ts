@@ -5,8 +5,17 @@
 /// Idempotente por `Organization.slug`: borra y recrea las orgs cuyos slugs usa el seed.
 
 import { PrismaClient, Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
+
+// Contraseña por defecto para todos los usuarios del seed: Admin2026!
+const DEFAULT_PASSWORD = "Admin2026!";
+let _passwordHash: string | null = null;
+async function getPasswordHash(): Promise<string> {
+  if (!_passwordHash) _passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
+  return _passwordHash;
+}
 
 // ---------------------------------------------------------------------------
 // Utilidades
@@ -330,35 +339,36 @@ async function seedOrg(slug: string, name: string, plan: "STARTER" | "PROFESSION
   // -------------------------------------------------------------------------
   const userDefs = [
     {
-      role: "AGENCY_ADMIN" as const,
+      role: "ADMINISTRADOR" as const,
       name: "Laura Bustamante",
       email: `admin@${slug}.mx`,
       zones: ZONAS_PREMIUM.slice(0, 3),
       specialties: ["CASA" as const, "DEPARTAMENTO" as const],
     },
     {
-      role: "BROKER" as const,
+      role: "ADMINISTRADOR" as const,
       name: "Roberto Encinas",
-      email: `broker@${slug}.mx`,
+      email: `admin2@${slug}.mx`,
       zones: [...ZONAS_PREMIUM.slice(0, 3), ...ZONAS_MEDIAS.slice(0, 2)],
       specialties: ["CASA" as const, "TOWNHOUSE" as const],
     },
     {
-      role: "AGENT" as const,
+      role: "ASESOR" as const,
       name: "Paola Valenzuela",
-      email: `agente1@${slug}.mx`,
+      email: `asesor1@${slug}.mx`,
       zones: ZONAS_PREMIUM,
       specialties: ["DEPARTAMENTO" as const],
     },
     {
-      role: "AGENT" as const,
+      role: "ASESOR" as const,
       name: "Javier Soto",
-      email: `agente2@${slug}.mx`,
+      email: `asesor2@${slug}.mx`,
       zones: ZONAS_MEDIAS,
       specialties: ["CASA" as const, "TERRENO" as const],
     },
   ];
 
+  const passwordHash = await getPasswordHash();
   const users = [];
   for (const u of userDefs) {
     const user = await db.user.create({
@@ -366,13 +376,12 @@ async function seedOrg(slug: string, name: string, plan: "STARTER" | "PROFESSION
         organizationId: org.id,
         email: u.email,
         name: u.name,
-        // hash ficticio — reemplazar por bcrypt en auth real
-        passwordHash: "$2b$10$seedseedseedseedseedseedseedseedseedseedseedseedseedse",
+        passwordHash,
         role: u.role,
         avatarUrl: null,
         phone: fakePhone(),
         isActive: true,
-        commissionDefaultPct: new Prisma.Decimal(u.role === "BROKER" ? 60 : 50),
+        commissionDefaultPct: new Prisma.Decimal(u.role === "ADMINISTRADOR" ? 60 : 50),
         specialties: u.specialties,
         workingZones: u.zones,
         lastLoginAt: daysAgo(randInt(0, 5)),

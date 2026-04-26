@@ -88,7 +88,7 @@ export async function changeStatusAction(
 // ---- Archive ----------------------------------------------------------------
 
 export async function archivePropertyAction(propertyId: string) {
-  const u = await requireRole("BROKER");
+  const u = await requireRole("ADMINISTRADOR");
   assertCan(u.role, "property.delete");
 
   await archiveProperty({ organizationId: u.organizationId, userId: u.id }, propertyId);
@@ -204,7 +204,7 @@ export async function publishToPortalsAction(
   propertyId: string,
   portals: string[],
 ) {
-  const u = await requireRole("BROKER");
+  const u = await requireRole("ADMINISTRADOR");
 
   await publishToPortals(
     { organizationId: u.organizationId, userId: u.id },
@@ -217,7 +217,7 @@ export async function publishToPortalsAction(
 }
 
 export async function unpublishAction(propertyId: string) {
-  const u = await requireRole("BROKER");
+  const u = await requireRole("ADMINISTRADOR");
   await withTenant({ organizationId: u.organizationId, userId: u.id }, (db) =>
     db.property.update({
       where: { id: propertyId },

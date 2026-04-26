@@ -11,7 +11,7 @@ import {
 } from "@/lib/validators/whatsapp";
 
 export async function connectWhatsappAction(rawInput: unknown) {
-  const u = await requireRole("AGENCY_ADMIN");
+  const u = await requireRole("ADMINISTRADOR");
   const input = WhatsappAccountUpsertSchema.parse(rawInput);
 
   await upsertWhatsappAccount({
@@ -24,7 +24,7 @@ export async function connectWhatsappAction(rawInput: unknown) {
 }
 
 export async function sendWhatsappTemplateAction(rawInput: unknown) {
-  const u = await requireRole("AGENT");
+  const u = await requireRole("ASESOR");
   const input = WhatsappSendSchema.parse(rawInput);
 
   const phone = await resolveContactPhone(
@@ -44,7 +44,7 @@ export async function sendWhatsappTemplateAction(rawInput: unknown) {
 }
 
 export async function sendWhatsappFreeformAction(rawInput: unknown) {
-  const u = await requireRole("AGENT");
+  const u = await requireRole("ASESOR");
   const input = WhatsappFreeformSendSchema.parse(rawInput);
 
   const phone = await resolveContactPhone(
