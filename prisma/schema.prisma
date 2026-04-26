@@ -424,9 +424,10 @@ model User {
   interactionsCreated Interaction[]            @relation("InteractionCreatedBy")
   tasksAssigned       Task[]                   @relation("TaskAssignedTo")
   tasksCreated        Task[]                   @relation("TaskCreatedBy")
-  maintenanceAssigned MaintenanceRequest[]     @relation("MaintenanceAssigned")
-  auditLogs           AuditLog[]
-  notificationPrefs   NotificationPreference[]
+  maintenanceAssigned  MaintenanceRequest[]     @relation("MaintenanceAssigned")
+  auditLogs            AuditLog[]
+  notificationPrefs    NotificationPreference[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([organizationId])
   @@index([organizationId, role])
@@ -1297,5 +1298,19 @@ model PortalSession {
 
   @@index([organizationId])
   @@index([kind, subjectId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([expiresAt])
 }

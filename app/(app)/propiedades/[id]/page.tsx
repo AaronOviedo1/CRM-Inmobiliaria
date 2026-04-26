@@ -32,7 +32,7 @@ export default async function PropertyDetailPage({ params }: Props) {
     prisma.user.findMany({
       where: {
         organizationId: orgId,
-        role: { in: ["AGENT", "BROKER", "AGENCY_ADMIN"] },
+        role: { in: ["ADMINISTRADOR", "ASESOR"] as any[] },
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
