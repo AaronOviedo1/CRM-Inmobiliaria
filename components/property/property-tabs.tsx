@@ -25,6 +25,12 @@ import {
 } from "@/lib/format";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
+import { UploadDocumentDialog } from "@/components/property/upload-document-dialog";
+import {
+  ScheduleViewingDialog,
+  type AgentOption,
+  type LeadOption,
+} from "@/components/property/schedule-viewing-dialog";
 import {
   Calendar,
   Download,
@@ -44,6 +50,9 @@ interface Props {
   offers: Offer[];
   matches: MatchSuggestion[];
   documents?: PropertyDocument[];
+  leads?: LeadOption[];
+  agents?: AgentOption[];
+  currentUserId?: string;
 }
 
 export function PropertyDetailTabs({
@@ -52,6 +61,9 @@ export function PropertyDetailTabs({
   offers,
   matches,
   documents = [],
+  leads = [],
+  agents = [],
+  currentUserId,
 }: Props) {
   return (
     <Tabs defaultValue="info" className="w-full">
@@ -141,9 +153,13 @@ export function PropertyDetailTabs({
           </ul>
         )}
         <div className="mt-4">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4" /> Agendar nueva visita
-          </Button>
+          <ScheduleViewingDialog
+            propertyId={property.id}
+            leads={leads}
+            agents={agents}
+            defaultAgentId={currentUserId}
+            size="sm"
+          />
         </div>
       </TabsContent>
 
@@ -225,17 +241,19 @@ export function PropertyDetailTabs({
                     {d.isPublicToOwnerPortal && " · Visible al propietario"}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm">
-                  <Download className="h-4 w-4" /> Descargar
-                </Button>
+                {d.url && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={d.url} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4" /> Descargar
+                    </a>
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
         )}
         <div className="mt-4">
-          <Button variant="outline" size="sm">
-            <FileText className="h-4 w-4" /> Subir documento
-          </Button>
+          <UploadDocumentDialog propertyId={property.id} size="sm" />
         </div>
       </TabsContent>
 

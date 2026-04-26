@@ -1,11 +1,28 @@
 import { PrismaClient } from "@prisma/client";
+import { toPlain } from "./utils";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-export const prisma: PrismaClient =
-  globalForPrisma.prisma ?? new PrismaClient({ log: ["error"] });
+const basePrisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = basePrisma;
+
+export const prisma = basePrisma.$extends({
+  query: {
+    $allModels: {
+      async $allOperations({ args, query }) {
+        const result = await query(args);
+        return toPlain(result);
+      },
+    },
+  },
+});
 
 export type TenantContext = {
   organizationId: string;

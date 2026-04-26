@@ -3,12 +3,9 @@ import {
   Bath,
   BedDouble,
   Car,
-  Copy,
   Eye,
   MapPin,
-  MessageSquare,
   Ruler,
-  Share2,
 } from "lucide-react";
 import {
   CONSERVATION_LABEL,
@@ -19,14 +16,20 @@ import {
 } from "@/lib/labels";
 import { formatArea, formatMoney, formatMoneyCompact } from "@/lib/format";
 import { StatusPill } from "@/components/common/status-pill";
-import { Button } from "@/components/ui/button";
 import { PropertyGallery } from "./property-gallery";
+import { PropertyStatusMenu } from "./property-status-menu";
+import { AddressVisibilityToggle } from "./address-visibility-toggle";
+import { LogInteractionDialog } from "./log-interaction-dialog";
+import { SharePublicLinkButton } from "./share-public-link-button";
+import { CopyWhatsAppButton } from "./copy-whatsapp-button";
+import type { LeadOption } from "./schedule-viewing-dialog";
 
 interface Props {
   property: Property;
+  leads?: LeadOption[];
 }
 
-export function PropertyHero({ property }: Props) {
+export function PropertyHero({ property, leads = [] }: Props) {
   return (
     <div className="space-y-6">
       <PropertyGallery images={property.images} title={property.title} />
@@ -34,9 +37,7 @@ export function PropertyHero({ property }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone={PROPERTY_STATUS_TONE[property.status]}>
-              {PROPERTY_STATUS_LABEL[property.status]}
-            </StatusPill>
+            <PropertyStatusMenu propertyId={property.id} status={property.status} />
             <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold-faint px-2 py-0.5 text-xs text-gold">
               {TRANSACTION_TYPE_LABEL[property.transactionType]}
             </span>
@@ -50,11 +51,17 @@ export function PropertyHero({ property }: Props) {
             {property.title}
           </h1>
 
-          <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
-            {property.hideExactAddress
-              ? `${property.neighborhood} · ${property.city}`
-              : `${property.addressStreet} ${property.addressNumber}, ${property.neighborhood}, ${property.city}`}
+            <span>
+              {property.hideExactAddress
+                ? `${property.neighborhood} · ${property.city}`
+                : `${property.addressStreet} ${property.addressNumber}, ${property.neighborhood}, ${property.city}`}
+            </span>
+            <AddressVisibilityToggle
+              propertyId={property.id}
+              hideExactAddress={property.hideExactAddress}
+            />
           </p>
 
           <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -118,15 +125,40 @@ export function PropertyHero({ property }: Props) {
           )}
 
           <div className="mt-5 grid gap-2">
-            <Button>
-              <MessageSquare className="h-4 w-4" /> Registrar interacción
-            </Button>
-            <Button variant="outline">
-              <Share2 className="h-4 w-4" /> Compartir link público
-            </Button>
-            <Button variant="ghost" className="text-muted-foreground">
-              <Copy className="h-4 w-4" /> Copiar ficha WhatsApp
-            </Button>
+            <LogInteractionDialog propertyId={property.id} leads={leads} />
+            <SharePublicLinkButton slug={property.slug} title={property.title} />
+            <CopyWhatsAppButton
+              data={{
+                title: property.title,
+                slug: property.slug,
+                code: property.code,
+                neighborhood: property.neighborhood ?? null,
+                city: property.city ?? null,
+                addressStreet: property.addressStreet ?? null,
+                addressNumber: property.addressNumber ?? null,
+                hideExactAddress: property.hideExactAddress,
+                priceSale:
+                  property.priceSale == null
+                    ? null
+                    : Number(property.priceSale),
+                priceRent:
+                  property.priceRent == null
+                    ? null
+                    : Number(property.priceRent),
+                currency: property.currency,
+                bedrooms: property.bedrooms ?? null,
+                bathrooms: property.bathrooms ?? null,
+                parkingSpaces: property.parkingSpaces ?? null,
+                areaBuiltM2:
+                  property.areaBuiltM2 == null
+                    ? null
+                    : Number(property.areaBuiltM2),
+                areaTotalM2:
+                  property.areaTotalM2 == null
+                    ? null
+                    : Number(property.areaTotalM2),
+              }}
+            />
           </div>
 
           <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">

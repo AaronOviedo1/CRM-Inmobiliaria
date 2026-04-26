@@ -12,6 +12,7 @@ import {
   reorderImages,
   publishToPortals,
 } from "@/lib/services/property";
+import { PropertyStatusTransitionError } from "@/lib/workflows/property-status";
 import { prisma } from "@/lib/prisma";
 import {
   PropertyCreateSchema,
@@ -73,12 +74,24 @@ export async function changeStatusAction(
   assertCan(u.role, "property.edit_status");
 
   const { status, reason } = PropertyStatusChangeSchema.parse(rawInput);
-  await changePropertyStatus(
-    { organizationId: u.organizationId, userId: u.id },
-    propertyId,
-    status,
-    reason,
-  );
+  try {
+    await changePropertyStatus(
+      { organizationId: u.organizationId, userId: u.id },
+      propertyId,
+      status,
+      reason,
+    );
+  } catch (err) {
+    if (err instanceof PropertyStatusTransitionError) {
+      return {
+        ok: false,
+        error: "INVALID_TRANSITION" as const,
+        from: err.from,
+        to: err.to,
+      };
+    }
+    throw err;
+  }
 
   revalidatePath(`/propiedades/${propertyId}`);
   revalidatePath("/propiedades");
@@ -194,7 +207,7 @@ export async function addDocumentAction(rawInput: unknown) {
     },
   });
 
-  revalidatePath(`/propiedades/${input.propertyId}/documentos`);
+  revalidatePath(`/propiedades/${input.propertyId}`);
   return { ok: true };
 }
 

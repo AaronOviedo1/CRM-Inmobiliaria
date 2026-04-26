@@ -6,6 +6,11 @@ import { audit } from "./audit";
 import type { TenantContext } from "../prisma";
 import type { PropertyCreateInput, PropertyUpdateInput } from "../validators/property";
 import { AuditAction } from "../enums";
+import type { PropertyStatus as PropertyStatusType } from "../enums";
+import {
+  canTransitionPropertyStatus,
+  PropertyStatusTransitionError,
+} from "../workflows/property-status";
 
 function buildSlug(title: string): string {
   return title
@@ -172,6 +177,12 @@ export async function changePropertyStatus(
     where: { id: propertyId, organizationId: ctx.organizationId },
   });
   if (!before) throw new Error("PROPERTY_NOT_FOUND");
+
+  const from = before.status as PropertyStatusType;
+  const to = status as PropertyStatusType;
+  if (!canTransitionPropertyStatus(from, to)) {
+    throw new PropertyStatusTransitionError(from, to);
+  }
 
   await prisma.property.update({
     where: { id: propertyId },

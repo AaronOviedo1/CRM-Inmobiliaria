@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "./config";
 import type { UserRole } from "../enums";
 import type { TenantContext } from "../prisma";
+import { prisma } from "../prisma";
 
 export type SessionUser = {
   id: string;
