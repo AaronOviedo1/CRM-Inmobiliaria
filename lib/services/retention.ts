@@ -174,7 +174,7 @@ export async function processColdLeads(organizationId: string) {
 
 async function getAdminOrFirstAgent(organizationId: string): Promise<string> {
   const u = await prisma.user.findFirst({
-    where: { organizationId, role: { in: ["AGENCY_ADMIN", "BROKER"] }, isActive: true },
+    where: { organizationId, role: { in: ["ADMINISTRADOR"] }, isActive: true },
     select: { id: true },
   });
   if (u) return u.id;

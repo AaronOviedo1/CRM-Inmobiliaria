@@ -9,7 +9,7 @@ export const UserCreateSchema = z.object({
   name: z.string().min(1).max(120),
   phone: phoneMx.optional(),
   password: z.string().min(8).max(200),
-  role: z.enum(ev(UserRole)).default("AGENT"),
+  role: z.enum(ev(UserRole)).default("ASESOR"),
   commissionDefaultPct: z.coerce.number().min(0).max(100).default(50),
   specialties: z.array(z.enum(ev(PropertyCategory))).max(20).default([]),
   workingZones: z.array(z.string().max(80)).max(30).default([]),

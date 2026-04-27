@@ -50,7 +50,7 @@ export async function updateRentalAction(rentalId: string, rawInput: unknown) {
 }
 
 export async function terminateRentalAction(rawInput: unknown) {
-  const u = await requireRole("BROKER");
+  const u = await requireRole("ADMINISTRADOR");
   const input = RentalTerminateSchema.parse(rawInput);
 
   const rental = await prisma.rental.findFirst({

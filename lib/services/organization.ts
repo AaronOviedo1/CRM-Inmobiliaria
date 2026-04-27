@@ -39,7 +39,7 @@ export async function registerOrganization(input: OrgRegisterInput): Promise<{
           email: input.adminEmail.toLowerCase(),
           name: input.adminName,
           passwordHash: hash,
-          role: "AGENCY_ADMIN",
+          role: "ADMINISTRADOR",
         },
       },
     },

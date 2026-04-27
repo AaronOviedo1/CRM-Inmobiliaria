@@ -1,7 +1,3 @@
-/// Reglas de RBAC finas a nivel acción.
-/// El chequeo grueso lo hace requireRole en session.ts; este archivo expone
-/// matrices específicas para operaciones que no encajan en jerarquía pura.
-
 import { UserRole } from "../enums";
 
 type Action =
@@ -22,21 +18,23 @@ type Action =
   | "whatsapp.configure";
 
 const MATRIX: Record<Action, UserRole[]> = {
-  "user.manage": ["SUPER_ADMIN", "AGENCY_ADMIN"],
-  "billing.manage": ["SUPER_ADMIN", "AGENCY_ADMIN"],
-  "org.settings": ["SUPER_ADMIN", "AGENCY_ADMIN"],
-  "reports.view_global": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "property.create": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER", "AGENT"],
-  "property.edit_price": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "property.edit_status": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER", "AGENT"],
-  "property.delete": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "lead.assign": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "lead.delete": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "lead.view_all": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "rental.create": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER", "AGENT"],
-  "rental.terminate": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "maintenance.approve_spending": ["SUPER_ADMIN", "AGENCY_ADMIN", "BROKER"],
-  "whatsapp.configure": ["SUPER_ADMIN", "AGENCY_ADMIN"],
+  // Solo Administrador
+  "user.manage":                ["ADMINISTRADOR"],
+  "billing.manage":             ["ADMINISTRADOR"],
+  "org.settings":               ["ADMINISTRADOR"],
+  "reports.view_global":        ["ADMINISTRADOR"],
+  "property.edit_price":        ["ADMINISTRADOR"],
+  "property.delete":            ["ADMINISTRADOR"],
+  "lead.assign":                ["ADMINISTRADOR"],
+  "lead.delete":                ["ADMINISTRADOR"],
+  "lead.view_all":              ["ADMINISTRADOR"],
+  "rental.terminate":           ["ADMINISTRADOR"],
+  "maintenance.approve_spending": ["ADMINISTRADOR"],
+  "whatsapp.configure":         ["ADMINISTRADOR"],
+  // Ambos roles
+  "property.create":            ["ADMINISTRADOR", "ASESOR"],
+  "property.edit_status":       ["ADMINISTRADOR", "ASESOR"],
+  "rental.create":              ["ADMINISTRADOR", "ASESOR"],
 };
 
 export function can(role: UserRole, action: Action): boolean {

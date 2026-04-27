@@ -64,6 +64,7 @@ export default async function DashboardPage() {
       orderBy: { occurredAt: "desc" },
       take: 10,
       include: {
+        relatedLead: { select: { id: true, firstName: true, lastName: true } },
         createdBy: { select: { id: true, name: true } },
       },
     }),

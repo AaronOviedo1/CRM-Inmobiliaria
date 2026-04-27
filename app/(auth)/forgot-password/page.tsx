@@ -7,15 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { forgotPasswordAction } from "@/app/_actions/auth";
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO(backend): trigger magic link de recuperación con token efímero.
-    setSent(true);
-    toast.success("Link enviado. Revisa tu correo.");
+    setLoading(true);
+    try {
+      const email = new FormData(e.currentTarget).get("email") as string;
+      await forgotPasswordAction(email);
+      setSent(true);
+    } catch {
+      toast.error("Ocurrió un error. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,10 +49,10 @@ export default function ForgotPasswordPage() {
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Correo</Label>
-            <Input id="email" type="email" placeholder="tu@inmobiliaria.com" required />
+            <Input id="email" name="email" type="email" placeholder="tu@inmobiliaria.com" required />
           </div>
-          <Button type="submit" className="w-full" size="lg">
-            Mandar link
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? "Enviando…" : "Mandar link"}
           </Button>
         </form>
       )}

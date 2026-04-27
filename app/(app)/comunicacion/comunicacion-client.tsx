@@ -50,8 +50,8 @@ type Lead = {
   interactions: Interaction[];
 };
 
-export function ComunicacionClient({ leads }: { leads: Lead[] }) {
-  const [selectedId, setSelectedId] = React.useState(leads[0]?.id);
+export function ComunicacionClient({ leads, initialContactId }: { leads: Lead[]; initialContactId?: string }) {
+  const [selectedId, setSelectedId] = React.useState(initialContactId ?? leads[0]?.id);
   const [draft, setDraft] = React.useState("");
   const [search, setSearch] = React.useState("");
 
