@@ -19,11 +19,8 @@ export const SubscriptionStatus = {
 export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 
 export const UserRole = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  AGENCY_ADMIN: "AGENCY_ADMIN",
-  BROKER: "BROKER",
-  AGENT: "AGENT",
-  ASSISTANT: "ASSISTANT",
+  ADMINISTRADOR: "ADMINISTRADOR",
+  ASESOR: "ASESOR",
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 

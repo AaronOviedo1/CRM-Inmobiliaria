@@ -425,11 +425,15 @@ export const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
 };
 
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
-  SUPER_ADMIN: "Super Admin",
-  AGENCY_ADMIN: "Administrador",
-  BROKER: "Broker",
-  AGENT: "Agente",
-  ASSISTANT: "Asistente",
+  ADMINISTRADOR: "Administrador",
+  ASESOR: "Asesor Inmobiliario",
+};
+
+export const USER_ROLE_DESCRIPTION: Record<UserRole, string> = {
+  ADMINISTRADOR:
+    "Acceso completo al CRM. Gestiona usuarios y asesores, ve leads de toda la agencia, asigna y reasigna prospectos, edita precios de propiedades, elimina registros, configura la organización, revisa reportes financieros y de comisiones, aprueba gastos de mantenimiento, configura WhatsApp y puede terminar contratos de renta.",
+  ASESOR:
+    "Acceso operativo al CRM. Ve y gestiona únicamente los leads que le fueron asignados, captura propiedades al catálogo, agenda y registra visitas, anota interacciones (llamadas, WhatsApp, emails, notas internas), mueve prospectos por el Kanban, registra ofertas de clientes y consulta el matching de propiedades con sus leads. No puede ver leads de otros asesores ni eliminar registros.",
 };
 
 export const CURRENCY_LABEL: Record<Currency, string> = {

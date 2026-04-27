@@ -1,15 +1,21 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
+import { requireSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 export default async function InternalAppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // TODO(backend): replace with real session + org check:
-  // const user = await getSession();
-  // if (!user) redirect("/login");
-  // const org = await prisma.organization.findUnique({ where: { id: user.organizationId }, select: { subscriptionStatus: true } });
-  // if (org?.subscriptionStatus === "CANCELED") redirect("/suscripcion");
+  const user = await requireSession();
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+    select: { subscriptionStatus: true },
+  });
+
+  if (org?.subscriptionStatus === "CANCELED") redirect("/suscripcion");
 
   return <AppShell>{children}</AppShell>;
 }

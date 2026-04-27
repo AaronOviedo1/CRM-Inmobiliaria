@@ -1,11 +1,3 @@
-/// Prisma client — real PrismaClient conectado a la DB configurada por
-/// `DATABASE_URL`. Usa el patrón global-singleton recomendado por Prisma para
-/// evitar múltiples clientes durante el hot-reload de Next.js en desarrollo.
-///
-/// Se aplica una extensión global que corre `toPlain()` sobre el resultado de
-/// toda query. Así los `Prisma.Decimal` llegan a los Server Components como
-/// `number` y Next.js no se queja al pasarlos a Client Components.
-
 import { PrismaClient } from "@prisma/client";
 import { toPlain } from "./utils";
 

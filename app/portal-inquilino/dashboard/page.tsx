@@ -10,14 +10,18 @@ import {
 } from "@/lib/labels";
 import { daysUntil, formatDate, formatMoney } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { validatePortalSession, PORTAL_COOKIE_NAME } from "@/lib/services/portal-sessions";
 
 const toN = (v: any) => v === null || v === undefined ? 0 : typeof v === "object" && "toNumber" in v ? v.toNumber() : Number(v);
 
-// TODO(backend): restore cookie-based portal auth when backend is wired up.
-const MOCK_SESSION = { organizationId: "org_1", kind: "TENANT" as const, subjectId: "client_1" };
-
 export default async function TenantDashboardPage() {
-  const session = MOCK_SESSION;
+  const jar = await cookies();
+  const token = jar.get(PORTAL_COOKIE_NAME)?.value;
+  if (!token) redirect("/portal-inquilino/login");
+  const session = await validatePortalSession(token, "TENANT");
+  if (!session) redirect("/portal-inquilino/login");
 
   const client = await prisma.client.findFirst({
     where: { id: session.subjectId, organizationId: session.organizationId },
