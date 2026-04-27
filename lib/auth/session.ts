@@ -1,5 +1,6 @@
 import type { UserRole } from "../enums";
 import type { TenantContext } from "../prisma";
+import { prisma } from "../prisma";
 
 export type SessionUser = {
   id: string;
@@ -9,26 +10,54 @@ export type SessionUser = {
   role: UserRole;
 };
 
-// TODO(backend): replace with real next-auth session check.
-// For mock preview, returns a fixed mock session so all pages render without redirecting.
-const MOCK_SESSION: SessionUser = {
-  id: "user_1",
-  email: "sofia@casadorada.mx",
-  name: "Sofía Encinas",
-  organizationId: "org_1",
-  role: "AGENT" as UserRole,
-};
+// TODO(auth): replace with real next-auth session check.
+// For now we resolve the first active admin (or user) in the DB and cache it
+// per-process so every request in dev sees the same identity.
+let cachedSession: SessionUser | null = null;
+
+async function resolveSession(): Promise<SessionUser> {
+  if (cachedSession) return cachedSession;
+  const user = await prisma.user.findFirst({
+    where: { isActive: true },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      organizationId: true,
+      role: true,
+    },
+  });
+  if (!user) {
+    throw new Error(
+      "No hay usuarios en la base de datos. Ejecuta `npm run db:seed` primero.",
+    );
+  }
+  cachedSession = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    organizationId: user.organizationId,
+    role: user.role as UserRole,
+  };
+  return cachedSession;
+}
 
 export async function getSession(): Promise<SessionUser | null> {
-  return MOCK_SESSION;
+  try {
+    return await resolveSession();
+  } catch {
+    return null;
+  }
 }
 
 export async function requireSession(): Promise<SessionUser> {
-  return MOCK_SESSION;
+  return resolveSession();
 }
 
 export async function requireTenantContext(): Promise<TenantContext> {
-  return { organizationId: MOCK_SESSION.organizationId, userId: MOCK_SESSION.id };
+  const s = await resolveSession();
+  return { organizationId: s.organizationId, userId: s.id };
 }
 
 const ROLE_RANK: Record<UserRole, number> = {
@@ -43,6 +72,6 @@ export function canRole(have: UserRole, need: UserRole): boolean {
   return ROLE_RANK[have] >= ROLE_RANK[need];
 }
 
-export async function requireRole(need: UserRole): Promise<SessionUser> {
-  return MOCK_SESSION;
+export async function requireRole(_need: UserRole): Promise<SessionUser> {
+  return resolveSession();
 }

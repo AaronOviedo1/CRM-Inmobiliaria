@@ -1,8 +1,9 @@
 import { prisma } from "../prisma";
 import type { TenantContext } from "../prisma";
+import { toPlain } from "../utils";
 
 export async function getLeadById(ctx: TenantContext, id: string) {
-  return prisma.lead.findFirst({
+  const row = await prisma.lead.findFirst({
     where: { id, organizationId: ctx.organizationId, deletedAt: null },
     include: {
       interactions: { orderBy: { occurredAt: "desc" }, take: 30 },
@@ -20,6 +21,7 @@ export async function getLeadById(ctx: TenantContext, id: string) {
       assignedAgent: { select: { id: true, name: true, avatarUrl: true } },
     },
   });
+  return toPlain(row);
 }
 
 export async function listLeads(ctx: TenantContext, f: any) {
@@ -48,5 +50,5 @@ export async function listLeads(ctx: TenantContext, f: any) {
     }),
     prisma.lead.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }

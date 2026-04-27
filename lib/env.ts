@@ -56,6 +56,12 @@ export const env = {
   uploadthingSecret: get("UPLOADTHING_SECRET"),
   uploadthingAppId: get("UPLOADTHING_APP_ID"),
 
+  // Cloudinary
+  cloudinaryCloudName: get("CLOUDINARY_CLOUD_NAME"),
+  cloudinaryApiKey: get("CLOUDINARY_API_KEY"),
+  cloudinaryApiSecret: get("CLOUDINARY_API_SECRET"),
+  cloudinaryUploadFolder: get("CLOUDINARY_UPLOAD_FOLDER"),
+
   // Maps
   mapboxToken: get("MAPBOX_ACCESS_TOKEN"),
   googleMapsKey: get("GOOGLE_MAPS_API_KEY"),
@@ -102,6 +108,12 @@ export const isWhatsappGlobalConfigured = () =>
   );
 export const isUploadthingConfigured = () =>
   Boolean(env.uploadthingSecret && env.uploadthingAppId);
+export const isCloudinaryConfigured = () =>
+  Boolean(
+    env.cloudinaryCloudName &&
+      env.cloudinaryApiKey &&
+      env.cloudinaryApiSecret,
+  );
 export const isMapboxConfigured = () => Boolean(env.mapboxToken);
 export const isGoogleMapsConfigured = () => Boolean(env.googleMapsKey);
 export const isGeocodingConfigured = () =>

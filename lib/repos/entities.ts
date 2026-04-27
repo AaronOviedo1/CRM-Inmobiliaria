@@ -1,8 +1,9 @@
 import { prisma } from "../prisma";
 import type { TenantContext } from "../prisma";
+import { toPlain } from "../utils";
 
 export async function getOwnerById(ctx: TenantContext, id: string) {
-  return prisma.owner.findFirst({
+  const row = await prisma.owner.findFirst({
     where: { id, organizationId: ctx.organizationId, deletedAt: null },
     include: {
       properties: { where: { deletedAt: null } },
@@ -20,6 +21,7 @@ export async function getOwnerById(ctx: TenantContext, id: string) {
       interactions: { orderBy: { occurredAt: "desc" }, take: 30 },
     },
   });
+  return toPlain(row);
 }
 
 export async function listOwners(ctx: TenantContext, f: any) {
@@ -43,11 +45,11 @@ export async function listOwners(ctx: TenantContext, f: any) {
     }),
     prisma.owner.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function getClientById(ctx: TenantContext, id: string) {
-  return prisma.client.findFirst({
+  const row = await prisma.client.findFirst({
     where: { id, organizationId: ctx.organizationId, deletedAt: null },
     include: {
       rentalsAsTenant: {
@@ -59,6 +61,7 @@ export async function getClientById(ctx: TenantContext, id: string) {
       interactions: { orderBy: { occurredAt: "desc" }, take: 20 },
     },
   });
+  return toPlain(row);
 }
 
 export async function listClients(ctx: TenantContext, f: any) {
@@ -82,11 +85,11 @@ export async function listClients(ctx: TenantContext, f: any) {
     }),
     prisma.client.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function getContractById(ctx: TenantContext, id: string) {
-  return prisma.propertyContract.findFirst({
+  const row = await prisma.propertyContract.findFirst({
     where: { id, organizationId: ctx.organizationId },
     include: {
       property: true,
@@ -95,6 +98,7 @@ export async function getContractById(ctx: TenantContext, id: string) {
       agent: true,
     },
   });
+  return toPlain(row);
 }
 
 export async function listContracts(ctx: TenantContext, f: any) {
@@ -116,11 +120,11 @@ export async function listContracts(ctx: TenantContext, f: any) {
     }),
     prisma.propertyContract.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function contractsExpiringBefore(ctx: TenantContext, date: Date) {
-  return prisma.propertyContract.findMany({
+  const rows = await prisma.propertyContract.findMany({
     where: {
       organizationId: ctx.organizationId,
       status: "ACTIVO" as any,
@@ -128,10 +132,11 @@ export async function contractsExpiringBefore(ctx: TenantContext, date: Date) {
     },
     include: { property: true, owner: true, agent: true },
   });
+  return toPlain(rows);
 }
 
 export async function getRentalById(ctx: TenantContext, id: string) {
-  return prisma.rental.findFirst({
+  const row = await prisma.rental.findFirst({
     where: { id, organizationId: ctx.organizationId },
     include: {
       property: { include: { images: { where: { isCover: true }, take: 1 } } },
@@ -142,13 +147,15 @@ export async function getRentalById(ctx: TenantContext, id: string) {
       payments: { orderBy: { dueDate: "desc" }, take: 12 },
     },
   });
+  return toPlain(row);
 }
 
 export async function listActiveRentals(ctx: TenantContext) {
-  return prisma.rental.findMany({
+  const rows = await prisma.rental.findMany({
     where: { organizationId: ctx.organizationId, status: "ACTIVA" as any },
     include: { property: true, tenant: true, owner: true },
   });
+  return toPlain(rows);
 }
 
 export async function listRentals(ctx: TenantContext, f: any) {
@@ -170,22 +177,24 @@ export async function listRentals(ctx: TenantContext, f: any) {
     }),
     prisma.rental.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function getPayment(ctx: TenantContext, id: string) {
-  return prisma.rentalPayment.findFirst({
+  const row = await prisma.rentalPayment.findFirst({
     where: { id, rental: { organizationId: ctx.organizationId } },
     include: { rental: { include: { tenant: true, property: true, owner: true } } },
   });
+  return toPlain(row);
 }
 
 export async function listViewingsBetween(ctx: TenantContext, from: Date, to: Date) {
-  return prisma.viewing.findMany({
+  const rows = await prisma.viewing.findMany({
     where: { organizationId: ctx.organizationId, scheduledAt: { gte: from, lte: to } },
     include: { property: true, lead: true, client: true, agent: true },
     orderBy: { scheduledAt: "asc" },
   });
+  return toPlain(rows);
 }
 
 export async function agentHasConflict(
@@ -235,18 +244,19 @@ export async function listViewings(ctx: TenantContext, f: any) {
     }),
     prisma.viewing.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function getOfferById(ctx: TenantContext, id: string) {
-  return prisma.offer.findFirst({
+  const row = await prisma.offer.findFirst({
     where: { id, organizationId: ctx.organizationId },
     include: { property: true, lead: true, client: true, agent: true },
   });
+  return toPlain(row);
 }
 
 export async function getMaintenanceById(ctx: TenantContext, id: string) {
-  return prisma.maintenanceRequest.findFirst({
+  const row = await prisma.maintenanceRequest.findFirst({
     where: { id, organizationId: ctx.organizationId },
     include: {
       rental: { include: { tenant: true, owner: true } },
@@ -255,6 +265,7 @@ export async function getMaintenanceById(ctx: TenantContext, id: string) {
       assignedTo: true,
     },
   });
+  return toPlain(row);
 }
 
 export async function listMaintenance(ctx: TenantContext, f: any) {
@@ -277,13 +288,14 @@ export async function listMaintenance(ctx: TenantContext, f: any) {
     }),
     prisma.maintenanceRequest.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function getTaskById(ctx: TenantContext, id: string) {
-  return prisma.task.findFirst({
+  const row = await prisma.task.findFirst({
     where: { id, organizationId: ctx.organizationId },
   });
+  return toPlain(row);
 }
 
 export async function listTasks(ctx: TenantContext, f: any) {
@@ -306,32 +318,36 @@ export async function listTasks(ctx: TenantContext, f: any) {
     }),
     prisma.task.count({ where }),
   ]);
-  return { rows, total };
+  return { rows: toPlain(rows), total };
 }
 
 export async function listActiveAgents(ctx: TenantContext) {
-  return prisma.user.findMany({
+  const rows = await prisma.user.findMany({
     where: { organizationId: ctx.organizationId, isActive: true },
     orderBy: { name: "asc" },
   });
+  return toPlain(rows);
 }
 
 export async function getUserById(ctx: TenantContext, id: string) {
-  return prisma.user.findFirst({ where: { id, organizationId: ctx.organizationId } });
+  const row = await prisma.user.findFirst({ where: { id, organizationId: ctx.organizationId } });
+  return toPlain(row);
 }
 
 export async function listUsers(ctx: TenantContext) {
-  return prisma.user.findMany({
+  const rows = await prisma.user.findMany({
     where: { organizationId: ctx.organizationId },
     orderBy: { name: "asc" },
   });
+  return toPlain(rows);
 }
 
 export async function listMatchSuggestions(ctx: TenantContext, leadId: string) {
-  return prisma.matchSuggestion.findMany({
+  const rows = await prisma.matchSuggestion.findMany({
     where: { organizationId: ctx.organizationId, leadId, status: "PROPUESTO" as any },
     include: { property: true },
     orderBy: { score: "desc" },
     take: 10,
   });
+  return toPlain(rows);
 }

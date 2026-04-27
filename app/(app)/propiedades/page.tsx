@@ -14,7 +14,17 @@ interface Props { searchParams: Promise<Record<string, string | undefined>>; }
 export default async function PropiedadesPage({ searchParams }: Props) {
   const ctx = await requireTenantContext();
   const raw = await searchParams;
-  const filters = PropertyFiltersSchema.parse({ q: raw.q, status: raw.status, category: raw.category, transactionType: raw.transactionType, page: raw.page ? Number(raw.page) : 1 });
+  const filters = PropertyFiltersSchema.parse({
+    q: raw.q,
+    status: raw.status,
+    category: raw.category,
+    transactionType: raw.transactionType,
+    neighborhood: raw.neighborhood,
+    minPrice: raw.minPrice,
+    maxPrice: raw.maxPrice,
+    minBedrooms: raw.minBedrooms,
+    page: raw.page ? Number(raw.page) : 1,
+  });
   const { rows, total } = await listProperties(ctx, filters);
 
   return (

@@ -121,22 +121,34 @@ export function PropertyCard({
           )}
         </div>
 
-        {property.category !== "TERRENO" && (
-          <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
-            {property.bedrooms && (
-              <Stat icon={<BedDouble className="h-3.5 w-3.5" />} value={property.bedrooms} />
-            )}
-            {property.bathrooms && (
-              <Stat icon={<Bath className="h-3.5 w-3.5" />} value={property.bathrooms} />
-            )}
-            {property.parkingSpaces && (
-              <Stat icon={<Car className="h-3.5 w-3.5" />} value={property.parkingSpaces} />
-            )}
-            {property.areaBuiltM2 && (
-              <Stat icon={<Ruler className="h-3.5 w-3.5" />} value={formatArea(property.areaBuiltM2)} />
-            )}
-          </div>
-        )}
+        {(() => {
+          const area =
+            property.category === "TERRENO"
+              ? property.areaTotalM2
+              : property.areaBuiltM2;
+          const hasStats =
+            property.bedrooms ||
+            property.bathrooms ||
+            property.parkingSpaces ||
+            area;
+          if (!hasStats) return null;
+          return (
+            <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
+              {property.bedrooms && (
+                <Stat icon={<BedDouble className="h-3.5 w-3.5" />} value={property.bedrooms} />
+              )}
+              {property.bathrooms && (
+                <Stat icon={<Bath className="h-3.5 w-3.5" />} value={property.bathrooms} />
+              )}
+              {property.parkingSpaces && (
+                <Stat icon={<Car className="h-3.5 w-3.5" />} value={property.parkingSpaces} />
+              )}
+              {area && (
+                <Stat icon={<Ruler className="h-3.5 w-3.5" />} value={formatArea(area)} />
+              )}
+            </div>
+          );
+        })()}
 
         <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">

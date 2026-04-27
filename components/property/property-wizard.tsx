@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
 } from "@/lib/labels";
 import { HERMOSILLO_ZONES, AMENITIES_POOL } from "@/lib/mock/fixtures";
 import { cn } from "@/lib/utils";
+import { GoogleMapPicker } from "@/components/property/google-map-picker";
 
 const STEPS = [
   { id: 1, title: "Tipo y operación" },
@@ -36,65 +37,226 @@ const STEPS = [
 
 const DRAFT_KEY = "property-wizard-draft";
 
-export function PropertyWizard() {
+export type PropertyWizardInitial = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  transactionType: string;
+  category: string;
+  priceSale: number | null;
+  priceRent: number | null;
+  maintenanceFee: number | null;
+  commissionPct: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
+  areaTotalM2: number | null;
+  areaBuiltM2: number | null;
+  conservation: string | null;
+  isFurnished: boolean;
+  acceptsPets: boolean;
+  amenities: string[];
+  zone: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  hideExactAddress: boolean;
+  virtualTourUrl: string | null;
+  images: { url: string }[];
+};
+
+type FormState = {
+  category: string;
+  transactionType: string;
+  title: string;
+  description: string;
+  zone: string;
+  addressStreet: string;
+  addressNumber: string;
+  postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  hideExactAddress: boolean;
+  bedrooms: string;
+  bathrooms: string;
+  parkingSpaces: string;
+  areaTotalM2: string;
+  areaBuiltM2: string;
+  conservation: string;
+  priceSale: string;
+  priceRent: string;
+  maintenanceFee: string;
+  commission: string;
+  isFurnished: boolean;
+  acceptsPets: boolean;
+  amenities: string[];
+  images: { url: string }[];
+  virtualTourUrl: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  category: "CASA",
+  transactionType: "VENTA",
+  title: "",
+  description: "",
+  zone: "Las Quintas",
+  addressStreet: "",
+  addressNumber: "",
+  postalCode: "",
+  latitude: null,
+  longitude: null,
+  hideExactAddress: true,
+  bedrooms: "3",
+  bathrooms: "2",
+  parkingSpaces: "2",
+  areaTotalM2: "320",
+  areaBuiltM2: "220",
+  conservation: "BUENA",
+  priceSale: "4500000",
+  priceRent: "",
+  maintenanceFee: "",
+  commission: "5",
+  isFurnished: false,
+  acceptsPets: true,
+  amenities: ["Seguridad 24/7", "Jardín"],
+  images: [],
+  virtualTourUrl: "",
+};
+
+const numOrEmpty = (n: number | null | undefined) =>
+  n === null || n === undefined ? "" : String(n);
+
+function fromInitial(initial: PropertyWizardInitial): FormState {
+  return {
+    category: initial.category || "CASA",
+    transactionType: initial.transactionType || "VENTA",
+    title: initial.title ?? "",
+    description: initial.description ?? "",
+    zone: initial.zone ?? "",
+    addressStreet: initial.addressStreet ?? "",
+    addressNumber: initial.addressNumber ?? "",
+    postalCode: initial.postalCode ?? "",
+    latitude: initial.latitude,
+    longitude: initial.longitude,
+    hideExactAddress: initial.hideExactAddress,
+    bedrooms: numOrEmpty(initial.bedrooms),
+    bathrooms: numOrEmpty(initial.bathrooms),
+    parkingSpaces: numOrEmpty(initial.parkingSpaces),
+    areaTotalM2: numOrEmpty(initial.areaTotalM2),
+    areaBuiltM2: numOrEmpty(initial.areaBuiltM2),
+    conservation: initial.conservation ?? "BUENA",
+    priceSale: numOrEmpty(initial.priceSale),
+    priceRent: numOrEmpty(initial.priceRent),
+    maintenanceFee: numOrEmpty(initial.maintenanceFee),
+    commission: numOrEmpty(initial.commissionPct),
+    isFurnished: initial.isFurnished,
+    acceptsPets: initial.acceptsPets,
+    amenities: initial.amenities ?? [],
+    images: initial.images ?? [],
+    virtualTourUrl: initial.virtualTourUrl ?? "",
+  };
+}
+
+export function PropertyWizard({
+  initial,
+}: {
+  initial?: PropertyWizardInitial;
+} = {}) {
   const router = useRouter();
+  const isEdit = !!initial;
   const [step, setStep] = React.useState(1);
   const [saving, setSaving] = React.useState(false);
-  const [form, setForm] = React.useState({
-    category: "CASA",
-    transactionType: "VENTA",
-    title: "",
-    description: "",
-    zone: "Las Quintas",
-    addressStreet: "",
-    addressNumber: "",
-    bedrooms: "3",
-    bathrooms: "2",
-    parkingSpaces: "2",
-    areaTotalM2: "320",
-    areaBuiltM2: "220",
-    conservation: "BUENA",
-    priceSale: "4500000",
-    priceRent: "",
-    maintenanceFee: "",
-    commission: "5",
-    isFurnished: false,
-    acceptsPets: true,
-    amenities: ["Seguridad 24/7", "Jardín"],
-    images: [] as { url: string }[],
-    virtualTourUrl: "",
-  });
+  const [form, setForm] = React.useState<FormState>(
+    initial ? fromInitial(initial) : DEFAULT_FORM,
+  );
 
-  // Autosave draft local.
+  // Autosave draft local — solo en modo creación.
   React.useEffect(() => {
+    if (isEdit) return;
     const saved = typeof window !== "undefined" && localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
         setForm((f) => ({ ...f, ...JSON.parse(saved) }));
       } catch {}
     }
-  }, []);
+  }, [isEdit]);
   React.useEffect(() => {
+    if (isEdit) return;
     const t = setTimeout(() => {
-      if (typeof window !== "undefined")
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+      if (typeof window !== "undefined") {
+        // Excluir imágenes del borrador: los data URLs pueden superar la cuota de localStorage.
+        const { images: _omit, ...rest } = form;
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
+        } catch {}
+      }
     }, 1000);
     return () => clearTimeout(t);
-  }, [form]);
+  }, [form, isEdit]);
 
   const next = () => setStep((s) => Math.min(STEPS.length, s + 1));
   const prev = () => setStep((s) => Math.max(1, s - 1));
   const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const finish = () => {
+  const finish = async () => {
     setSaving(true);
-    // TODO(backend): POST /api/properties; al ok → navigate al detalle.
-    setTimeout(() => {
-      toast.success("Propiedad guardada como borrador");
-      localStorage.removeItem(DRAFT_KEY);
-      router.push("/propiedades");
-    }, 700);
+    try {
+      const payload = {
+        title: form.title.trim() || "Propiedad sin título",
+        description: form.description,
+        transactionType: form.transactionType,
+        category: form.category,
+        priceSale: form.priceSale ? Number(form.priceSale) : undefined,
+        priceRent: form.priceRent ? Number(form.priceRent) : undefined,
+        maintenanceFee: form.maintenanceFee ? Number(form.maintenanceFee) : undefined,
+        commission: form.commission ? Number(form.commission) : undefined,
+        areaTotalM2: form.areaTotalM2 ? Number(form.areaTotalM2) : undefined,
+        areaBuiltM2: form.areaBuiltM2 ? Number(form.areaBuiltM2) : undefined,
+        bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+        bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+        parkingSpaces: form.parkingSpaces ? Number(form.parkingSpaces) : undefined,
+        conservation: form.conservation,
+        isFurnished: form.isFurnished,
+        acceptsPets: form.acceptsPets,
+        amenities: form.amenities,
+        zone: form.zone,
+        addressStreet: form.addressStreet,
+        addressNumber: form.addressNumber,
+        postalCode: form.postalCode,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        hideExactAddress: form.hideExactAddress,
+        virtualTourUrl: form.virtualTourUrl || undefined,
+        images: form.images.map((i) => ({ url: i.url })),
+      };
+      const url = isEdit ? `/api/properties/${initial!.id}` : "/api/properties";
+      const method = isEdit ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? `Error ${res.status}`);
+      }
+      if (isEdit) {
+        toast.success("Cambios guardados");
+        router.push(`/propiedades/${initial!.id}`);
+      } else {
+        toast.success("Propiedad creada como borrador");
+        localStorage.removeItem(DRAFT_KEY);
+        router.push("/propiedades");
+      }
+      router.refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "No se pudo guardar";
+      toast.error(msg);
+      setSaving(false);
+    }
   };
 
   return (
@@ -155,7 +317,18 @@ export function PropertyWizard() {
             {step === 2 && (
               <Step title="Ubicación" description="La dirección exacta se oculta en portales públicos.">
                 <FormField label="Zona / colonia">
-                  <Select value={form.zone} onValueChange={(v) => update("zone", v)}>
+                  <Select
+                    value={form.zone}
+                    onValueChange={(v) => {
+                      const z = HERMOSILLO_ZONES.find((x) => x.name === v);
+                      setForm((f) => ({
+                        ...f,
+                        zone: v,
+                        latitude: z ? z.lat : f.latitude,
+                        longitude: z ? z.lng : f.longitude,
+                      }));
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {HERMOSILLO_ZONES.map((z) => (
@@ -178,17 +351,61 @@ export function PropertyWizard() {
                     />
                   </FormField>
                   <FormField label="Código postal">
-                    <Input placeholder="83100" />
+                    <Input
+                      placeholder="83100"
+                      value={form.postalCode}
+                      onChange={(e) => update("postalCode", e.target.value)}
+                    />
                   </FormField>
                 </div>
-                <div className="mt-4 rounded-md border border-border bg-bg aspect-[16/7] relative overflow-hidden">
-                  <div className="absolute inset-0 bg-dots opacity-50" />
-                  <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                    Arrastra el pin para ajustar ubicación exacta.
-                    <br />
-                    <span className="text-xs opacity-60">(TODO(backend): integrar react-leaflet)</span>
-                  </div>
+                <div className="mt-4">
+                  <GoogleMapPicker
+                    value={
+                      form.latitude != null && form.longitude != null
+                        ? { lat: form.latitude, lng: form.longitude }
+                        : null
+                    }
+                    onChange={({ lat, lng }) =>
+                      setForm((f) => ({ ...f, latitude: lat, longitude: lng }))
+                    }
+                    onAddressResolved={(addr) => {
+                      setForm((f) => {
+                        const zoneMatch = addr.neighborhood
+                          ? HERMOSILLO_ZONES.find(
+                              (z) =>
+                                z.name.toLowerCase() ===
+                                addr.neighborhood!.toLowerCase(),
+                            )
+                          : undefined;
+                        return {
+                          ...f,
+                          addressStreet: addr.street ?? f.addressStreet,
+                          addressNumber: addr.number ?? f.addressNumber,
+                          postalCode: addr.postalCode ?? f.postalCode,
+                          zone: zoneMatch ? zoneMatch.name : f.zone,
+                        };
+                      });
+                    }}
+                    defaultCenter={(() => {
+                      const z = HERMOSILLO_ZONES.find((x) => x.name === form.zone);
+                      return z ? { lat: z.lat, lng: z.lng } : { lat: 29.0729, lng: -110.9559 };
+                    })()}
+                    searchAddress={[
+                      form.addressStreet,
+                      form.addressNumber,
+                      form.zone,
+                      form.postalCode,
+                      "Hermosillo, Sonora, México",
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  />
                 </div>
+                <SwitchRow
+                  label="Ocultar dirección exacta en anuncios públicos"
+                  checked={form.hideExactAddress}
+                  onChange={(v) => update("hideExactAddress", v)}
+                />
               </Step>
             )}
 
@@ -335,7 +552,13 @@ export function PropertyWizard() {
           <ArrowLeft className="h-4 w-4" /> Atrás
         </Button>
         <p className="text-xs text-muted-foreground">
-          Guardado automático: <span className="text-gold">on</span>
+          {isEdit ? (
+            <>Editando propiedad existente</>
+          ) : (
+            <>
+              Guardado automático: <span className="text-gold">on</span>
+            </>
+          )}
         </p>
         {step < STEPS.length ? (
           <Button onClick={next}>
@@ -343,7 +566,7 @@ export function PropertyWizard() {
           </Button>
         ) : (
           <Button onClick={finish} disabled={saving}>
-            {saving ? "Guardando…" : "Guardar propiedad"}
+            {saving ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar propiedad"}
             <Check className="h-4 w-4" />
           </Button>
         )}
@@ -452,6 +675,60 @@ function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
+const MAX_IMAGE_MB = 8;
+
+type SignedUploadParams = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+};
+
+async function fetchSignedUpload(): Promise<SignedUploadParams | null> {
+  const res = await fetch("/api/upload/cloudinary-sign", { method: "POST" });
+  if (!res.ok) return null;
+  return (await res.json()) as SignedUploadParams;
+}
+
+function uploadToCloudinary(
+  file: File,
+  params: SignedUploadParams,
+  onProgress: (pct: number) => void,
+): Promise<{ url: string; thumbnailUrl?: string }> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", params.apiKey);
+    form.append("timestamp", String(params.timestamp));
+    form.append("signature", params.signature);
+    form.append("folder", params.folder);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `https://api.cloudinary.com/v1_1/${params.cloudName}/image/upload`,
+    );
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          resolve({ url: json.secure_url, thumbnailUrl: json.eager?.[0]?.secure_url });
+        } catch (e) {
+          reject(e);
+        }
+      } else {
+        reject(new Error(`Cloudinary ${xhr.status}: ${xhr.responseText}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Error de red al subir a Cloudinary"));
+    xhr.send(form);
+  });
+}
+
 function ImageUploader({
   images,
   onChange,
@@ -459,25 +736,103 @@ function ImageUploader({
   images: { url: string }[];
   onChange: (v: { url: string }[]) => void;
 }) {
-  const addMock = () => {
-    const mockUrls = [
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80",
-      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-    ];
-    const pick = mockUrls[images.length % mockUrls.length]!;
-    onChange([...images, { url: pick }]);
-    toast.info("Mock: imagen agregada (simulado — TODO(backend) upload real)");
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [uploading, setUploading] = React.useState<{ name: string; pct: number }[]>([]);
+
+  const handleFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) {
+      toast.error("Solo se aceptan imágenes");
+      return;
+    }
+    const valid: File[] = [];
+    for (const f of files) {
+      if (f.size > MAX_IMAGE_MB * 1024 * 1024) {
+        toast.error(`${f.name} supera ${MAX_IMAGE_MB} MB`);
+      } else {
+        valid.push(f);
+      }
+    }
+    if (valid.length === 0) return;
+
+    const signed = await fetchSignedUpload();
+
+    if (!signed) {
+      toast.error(
+        "Cloudinary no está configurado. Agrega CLOUDINARY_* a tu .env para subir imágenes.",
+      );
+      return;
+    }
+
+    setUploading((s) => [...s, ...valid.map((f) => ({ name: f.name, pct: 0 }))]);
+    const uploaded: { url: string }[] = [];
+    for (const f of valid) {
+      try {
+        const r = await uploadToCloudinary(f, signed, (pct) => {
+          setUploading((s) =>
+            s.map((u) => (u.name === f.name ? { ...u, pct } : u)),
+          );
+        });
+        uploaded.push({ url: r.url });
+      } catch (err) {
+        toast.error(`Falló ${f.name}: ${err instanceof Error ? err.message : "error"}`);
+      } finally {
+        setUploading((s) => s.filter((u) => u.name !== f.name));
+      }
+    }
+    if (uploaded.length > 0) {
+      onChange([...images, ...uploaded]);
+      toast.success(
+        uploaded.length === 1 ? "Imagen subida" : `${uploaded.length} imágenes subidas`,
+      );
+    }
   };
+
+  const openPicker = () => inputRef.current?.click();
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+      e.target.value = "";
+    }
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const isBusy = uploading.length > 0;
 
   return (
     <div
-      className="rounded-lg border-2 border-dashed border-border bg-bg p-6 transition-colors hover:border-gold/30"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={onDrop}
+      className={cn(
+        "rounded-lg border-2 border-dashed border-border bg-bg p-6 transition-colors",
+        isDragging ? "border-gold/60 bg-gold-faint/20" : "hover:border-gold/30",
+      )}
     >
-      {images.length === 0 ? (
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={onInputChange}
+      />
+      {images.length === 0 && !isBusy ? (
         <button
           type="button"
-          onClick={addMock}
+          onClick={openPicker}
           className="flex w-full flex-col items-center justify-center gap-3 py-10 text-muted-foreground hover:text-gold"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold-faint text-gold">
@@ -485,7 +840,8 @@ function ImageUploader({
           </div>
           <div className="text-center">
             <p className="font-medium text-foreground">Arrastra tus fotos aquí</p>
-            <p className="text-xs">o haz click para agregar</p>
+            <p className="text-xs">o haz click para seleccionar desde tu equipo</p>
+            <p className="mt-1 text-[10px]">JPG, PNG o WebP · hasta {MAX_IMAGE_MB} MB c/u</p>
           </div>
         </button>
       ) : (
@@ -505,10 +861,23 @@ function ImageUploader({
               </div>
             </div>
           ))}
+          {uploading.map((u) => (
+            <div
+              key={u.name}
+              className="relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-md border border-border bg-elevated px-2 text-center text-[10px] text-muted-foreground"
+            >
+              <Loader2 className="h-4 w-4 animate-spin text-gold" />
+              <span className="w-full truncate">{u.name}</span>
+              <div className="absolute inset-x-0 bottom-0 h-1 bg-border">
+                <div className="h-full bg-gold transition-all" style={{ width: `${u.pct}%` }} />
+              </div>
+            </div>
+          ))}
           <button
             type="button"
-            onClick={addMock}
-            className="flex aspect-square items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground hover:text-gold hover:border-gold/40"
+            onClick={openPicker}
+            disabled={isBusy}
+            className="flex aspect-square items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground hover:text-gold hover:border-gold/40 disabled:opacity-50"
           >
             <ImagePlus className="h-5 w-5" />
           </button>
