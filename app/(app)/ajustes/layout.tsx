@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import {
   Bell,
   Building,
-  CreditCard,
   Globe,
   MessageCircle,
   Tags,
@@ -22,7 +21,6 @@ const SECTIONS = [
   { href: "/ajustes/plantillas", label: "Plantillas", icon: MessageCircle },
   { href: "/ajustes/portales", label: "Portales externos", icon: Globe },
   { href: "/ajustes/notificaciones", label: "Notificaciones", icon: Bell },
-  { href: "/ajustes/suscripcion", label: "Suscripción", icon: CreditCard },
 ];
 
 export default function AjustesLayout({ children }: { children: React.ReactNode }) {

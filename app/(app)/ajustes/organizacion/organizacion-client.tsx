@@ -14,7 +14,6 @@ type Org = {
   email: string | null;
   addressLine: string | null;
   primaryColor: string | null;
-  subscriptionPlan: string;
 };
 
 export function OrganizacionClient({ org }: { org: Org }) {
@@ -37,9 +36,7 @@ export function OrganizacionClient({ org }: { org: Org }) {
           </div>
           <div className="flex-1">
             <p className="font-serif text-xl">{org.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {org.slug}.crm.mx · Plan {org.subscriptionPlan}
-            </p>
+            <p className="text-xs text-muted-foreground">{org.slug}.crm.mx</p>
           </div>
           <Button type="button" variant="outline">Cambiar logo</Button>
         </div>

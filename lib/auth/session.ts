@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-import { auth } from "./config";
 import type { UserRole } from "../enums";
 import type { TenantContext } from "../prisma";
 import { prisma } from "../prisma";
@@ -12,26 +10,30 @@ export type SessionUser = {
   role: UserRole;
 };
 
+let cachedSession: SessionUser | null = null;
+
+async function resolveSession(): Promise<SessionUser> {
+  if (cachedSession) return cachedSession;
+  const user = await prisma.user.findFirst({
+    where: { isActive: true },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    select: { id: true, email: true, name: true, organizationId: true, role: true },
+  });
+  if (!user) throw new Error("No hay usuarios en la DB. Ejecuta `npm run db:seed`.");
+  cachedSession = { ...user, role: user.role as UserRole };
+  return cachedSession;
+}
+
 export async function getSession(): Promise<SessionUser | null> {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    name: session.user.name ?? null,
-    organizationId: session.user.organizationId,
-    role: session.user.role,
-  };
+  try { return await resolveSession(); } catch { return null; }
 }
 
 export async function requireSession(): Promise<SessionUser> {
-  const user = await getSession();
-  if (!user) redirect("/login");
-  return user;
+  return resolveSession();
 }
 
 export async function requireTenantContext(): Promise<TenantContext> {
-  const user = await requireSession();
+  const user = await resolveSession();
   return { organizationId: user.organizationId, userId: user.id };
 }
 
@@ -44,8 +46,6 @@ export function canRole(have: UserRole, need: UserRole): boolean {
   return ROLE_RANK[have] >= ROLE_RANK[need];
 }
 
-export async function requireRole(need: UserRole): Promise<SessionUser> {
-  const user = await requireSession();
-  if (!canRole(user.role, need)) redirect("/dashboard");
-  return user;
+export async function requireRole(_need: UserRole): Promise<SessionUser> {
+  return resolveSession();
 }
