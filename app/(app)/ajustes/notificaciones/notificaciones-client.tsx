@@ -3,57 +3,54 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { NOTIFICATION_CHANNEL_LABEL, NOTIFICATION_EVENT_LABEL } from "@/lib/labels";
-import type { NotificationChannel, NotificationEvent } from "@/lib/types";
 import { saveNotificationPrefAction } from "@/app/_actions/notificaciones";
 
-type Pref = { event: string; channel: string; enabled: boolean };
+const CHANNELS = [
+  { key: "EMAIL",  label: "Correo" },
+  { key: "IN_APP", label: "En app" },
+];
+
+const EVENTS = [
+  { key: "PAGO_VENCIDO",       label: "Pago vencido" },
+  { key: "MANTENIMIENTO_NUEVO", label: "Mantenimiento nuevo" },
+  { key: "CONTRATO_POR_VENCER", label: "Contrato próximo a vencer" },
+];
+
+type Pref = { channel: string; enabled: boolean };
 
 export function NotificacionesClient({ initialPrefs }: { initialPrefs: Pref[] }) {
-  const events = Object.keys(NOTIFICATION_EVENT_LABEL) as NotificationEvent[];
-  const channels = Object.keys(NOTIFICATION_CHANNEL_LABEL) as NotificationChannel[];
-
-  const defaultEnabled = (event: string, channel: string) => {
-    const found = initialPrefs.find((p) => p.event === event && p.channel === channel);
-    if (found !== undefined) return found.enabled;
-    return channel === "IN_APP" || channel === "EMAIL";
+  const defaultEnabled = (channel: string) => {
+    const found = initialPrefs.find((p) => p.channel === channel);
+    return found?.enabled ?? (channel === "IN_APP");
   };
 
-  const handleChange = async (event: string, channel: string, enabled: boolean) => {
+  const handleChange = async (channel: string, enabled: boolean) => {
     try {
-      await saveNotificationPrefAction(event, channel, enabled);
+      await saveNotificationPrefAction(channel, enabled);
     } catch {
       toast.error("No se pudo guardar la preferencia");
     }
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
       <table className="w-full text-sm">
-        <thead className="bg-elevated text-xs uppercase tracking-wider text-muted-foreground">
+        <thead className="border-b border-border bg-muted/30">
           <tr>
-            <th className="px-4 py-3 text-left">Evento</th>
-            {channels.map((c) => (
-              <th key={c} className="px-4 py-3 text-center">
-                {NOTIFICATION_CHANNEL_LABEL[c]}
-              </th>
-            ))}
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Canal</th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Activado</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border bg-surface">
-          {events.map((e) => (
-            <tr key={e}>
-              <td className="px-4 py-3 font-medium">{NOTIFICATION_EVENT_LABEL[e]}</td>
-              {channels.map((c) => (
-                <td key={c} className="px-4 py-3 text-center">
-                  <div className="inline-flex">
-                    <Switch
-                      defaultChecked={defaultEnabled(e, c)}
-                      onCheckedChange={(checked) => handleChange(e, c, checked)}
-                    />
-                  </div>
-                </td>
-              ))}
+        <tbody className="divide-y divide-border">
+          {CHANNELS.map((c) => (
+            <tr key={c.key} className="hover:bg-muted/30">
+              <td className="px-4 py-3 text-sm text-foreground">{c.label}</td>
+              <td className="px-4 py-3 text-center">
+                <Switch
+                  defaultChecked={defaultEnabled(c.key)}
+                  onCheckedChange={(checked) => handleChange(c.key, checked)}
+                />
+              </td>
             </tr>
           ))}
         </tbody>

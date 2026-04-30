@@ -98,3 +98,5 @@ export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return `${value.toFixed(1)}%`;
 }
+
+export const formatCurrency = formatMoney;

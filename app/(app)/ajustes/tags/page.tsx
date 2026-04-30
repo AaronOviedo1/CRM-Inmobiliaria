@@ -1,12 +1,9 @@
-import { requireTenantContext } from "@/lib/auth/session";
-import { prisma } from "@/lib/prisma";
-import { TagsClient } from "./tags-client";
-
-export default async function TagsPage() {
-  const ctx = await requireTenantContext();
-  const tags = await prisma.tag.findMany({
-    where: { organizationId: ctx.organizationId },
-    orderBy: [{ kind: "asc" }, { name: "asc" }],
-  });
-  return <TagsClient tags={tags as any} />;
+import { PageHeader } from "@/components/common/page-header";
+export default function TagsPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Tags" description="Etiquetas del sistema." />
+      <p className="text-sm text-muted-foreground">Sin configuración de tags disponible.</p>
+    </div>
+  );
 }

@@ -1,165 +1,283 @@
-import { Building2, KeySquare, Sparkles, Wrench, Calendar, MapPin, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { Greeting } from "@/components/dashboard/greeting";
-import { KpiCard } from "@/components/common/kpi-card";
-import { Section } from "@/components/common/section";
-import { TasksTodayWidget } from "@/components/dashboard/tasks-today-widget";
-import { ActivityTimeline } from "@/components/dashboard/activity-timeline";
-import { ExpiringContracts } from "@/components/dashboard/expiring-contracts";
-import { Button } from "@/components/ui/button";
-import { formatMoneyCompact } from "@/lib/format";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  TrendingUp,
+  Wrench,
+} from "lucide-react";
 import { requireTenantContext } from "@/lib/auth/session";
-import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { addDays } from "date-fns";
-
-const toN = (v: any) => v === null || v === undefined ? 0 : typeof v === "object" && "toNumber" in v ? v.toNumber() : Number(v);
+import { PageHeader } from "@/components/common/page-header";
+import { formatCurrency } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const [ctx, session] = await Promise.all([requireTenantContext(), requireSession()]);
-  const orgId = ctx.organizationId;
-  const now = new Date();
-  const weekOut = addDays(now, 7);
-  const monthOut = addDays(now, 30);
+  const ctx = await requireTenantContext();
+  const oid = ctx.organizationId;
 
-  const [
-    activePropertiesCount,
-    newLeadsCount,
-    todayViewingsCount,
-    pendingPayments,
-    urgentMaintenance,
-    recentInteractions,
-    expiringContracts,
-    tasks,
-    rentals,
-    user,
-  ] = await Promise.all([
-    prisma.property.count({ where: { organizationId: orgId, deletedAt: null, status: "DISPONIBLE" as any } }),
-    prisma.lead.count({ where: { organizationId: orgId, deletedAt: null, status: "NUEVO" as any } }),
-    prisma.viewing.count({
-      where: {
-        organizationId: orgId,
-        scheduledAt: {
-          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-          lte: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59),
+  const CURRENT_PERIOD = "2026-04";
+  const CURRENT_YEAR   = 2026;
+
+  // Totals
+  const [locales, contracts, payments, openMaint, budgetIncome, budgetExpense] =
+    await Promise.all([
+      prisma.local.count({ where: { organizationId: oid } }),
+      prisma.contract.count({ where: { organizationId: oid, isActive: true } }),
+      prisma.payment.findMany({
+        where: { organizationId: oid, period: CURRENT_PERIOD },
+        select: { status: true, amount: true },
+      }),
+      prisma.maintenance.count({
+        where: { organizationId: oid, status: { in: ["ABIERTO", "EN_PROGRESO"] } },
+      }),
+      prisma.budgetLine.aggregate({
+        where: { organizationId: oid, year: CURRENT_YEAR, month: 4, isIncome: true },
+        _sum: { budgeted: true },
+      }),
+      prisma.budgetLine.aggregate({
+        where: { organizationId: oid, year: CURRENT_YEAR, month: 4, isIncome: false },
+        _sum: { budgeted: true },
+      }),
+    ]);
+
+  const totalLocales   = locales;
+  const rentados       = contracts;
+  const ocupacion      = totalLocales > 0 ? Math.round((rentados / totalLocales) * 100) : 0;
+
+  const pagado    = payments.filter((p) => p.status === "PAGADO").reduce((s, p) => s + Number(p.amount), 0);
+  const vencido   = payments.filter((p) => p.status === "VENCIDO").reduce((s, p) => s + Number(p.amount), 0);
+  const pendiente = payments.filter((p) => p.status === "PENDIENTE").reduce((s, p) => s + Number(p.amount), 0);
+  const totalEsperado = pagado + vencido + pendiente;
+  const cobranzaPct = totalEsperado > 0 ? Math.round((pagado / totalEsperado) * 100) : 0;
+
+  const presupuestoIngresos = Number(budgetIncome._sum.budgeted ?? 0);
+  const presupuestoEgresos  = Number(budgetExpense._sum.budgeted ?? 0);
+  const utilidadEstimada    = presupuestoIngresos - presupuestoEgresos;
+
+  // Recent alerts
+  const vencidosDetail = await prisma.payment.findMany({
+    where: { organizationId: oid, status: "VENCIDO" },
+    include: {
+      contract: {
+        include: {
+          tenant: { select: { name: true } },
+          local:  { select: { nickname: true, plaza: { select: { name: true } } } },
         },
       },
-    }),
-    prisma.rentalPayment.count({
-      where: {
-        rental: { organizationId: orgId },
-        status: { in: ["PENDIENTE", "VENCIDO"] as any[] },
-        dueDate: { lte: weekOut },
-      },
-    }),
-    prisma.maintenanceRequest.count({
-      where: {
-        organizationId: orgId,
-        priority: { in: ["URGENCIA", "ALTA"] as any[] },
-        status: { notIn: ["COMPLETADO", "CERRADO"] as any[] },
-      },
-    }),
-    prisma.interaction.findMany({
-      where: { organizationId: orgId },
-      orderBy: { occurredAt: "desc" },
-      take: 10,
-      include: {
-        relatedLead: { select: { id: true, firstName: true, lastName: true } },
-        createdBy: { select: { id: true, name: true } },
-      },
-    }),
-    prisma.propertyContract.findMany({
-      where: {
-        organizationId: orgId,
-        status: "ACTIVO" as any,
-        endDate: { lte: monthOut, gte: now },
-      },
-      include: { property: true, owner: true },
-      orderBy: { endDate: "asc" },
-      take: 10,
-    }),
-    prisma.task.findMany({
-      where: { organizationId: orgId, assignedToId: session.id, status: { not: "COMPLETADA" as any } },
-      include: {
-        assignedTo: { select: { id: true, name: true } },
-        relatedLead: { select: { id: true, firstName: true, lastName: true } },
-      },
-      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-      take: 6,
-    }),
-    prisma.rental.findMany({
-      where: { organizationId: orgId, status: "ACTIVA" as any },
-      select: { monthlyRent: true },
-    }),
-    prisma.user.findFirst({
-      where: { id: session.id },
-      select: { name: true },
-    }),
-  ]);
+    },
+    take: 5,
+    orderBy: { period: "desc" },
+  });
 
-  const monthlyRentTotal = rentals.reduce((a, r) => a + toN(r.monthlyRent), 0);
+  const maintOpen = await prisma.maintenance.findMany({
+    where: { organizationId: oid, status: { in: ["ABIERTO", "EN_PROGRESO"] } },
+    include: { local: { select: { nickname: true, plaza: { select: { name: true } } } } },
+    orderBy: [{ priority: "desc" }, { reportedAt: "desc" }],
+    take: 4,
+  });
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <Greeting name={user?.name ?? "Agente"} />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/visitas"><Calendar className="h-4 w-4" /> Agenda del día</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/leads"><Sparkles className="h-4 w-4" /> Revisar leads</Link>
-          </Button>
+      <PageHeader
+        eyebrow="Abril 2026"
+        title="Dashboard"
+        description="Vista ejecutiva — CRT Inmobiliaria"
+      />
+
+      {/* KPI grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Ocupación"
+          value={`${ocupacion}%`}
+          sub={`${rentados} de ${totalLocales} locales`}
+          icon={Building2}
+          trend={ocupacion >= 90 ? "up" : ocupacion >= 75 ? "neutral" : "down"}
+        />
+        <KpiCard
+          label="Cobranza Abr"
+          value={`${cobranzaPct}%`}
+          sub={`${formatCurrency(pagado)} cobrado`}
+          icon={CreditCard}
+          trend={cobranzaPct >= 90 ? "up" : cobranzaPct >= 75 ? "neutral" : "down"}
+        />
+        <KpiCard
+          label="Ingresos Presup."
+          value={formatCurrency(presupuestoIngresos)}
+          sub="Presupuesto Abr 2026"
+          icon={TrendingUp}
+          trend="neutral"
+        />
+        <KpiCard
+          label="Utilidad Estimada"
+          value={formatCurrency(utilidadEstimada)}
+          sub={`Egresos: ${formatCurrency(presupuestoEgresos)}`}
+          icon={TrendingUp}
+          trend={utilidadEstimada > 0 ? "up" : "down"}
+        />
+      </div>
+
+      {/* Alerts & Maintenance */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Pagos vencidos */}
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-danger" />
+              <h2 className="font-medium text-foreground">Pagos vencidos</h2>
+            </div>
+            <Link href="/cobranza" className="flex items-center gap-1 text-xs text-gold hover:underline">
+              Ver cobranza <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          {vencidosDetail.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Sin pagos vencidos
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {vencidosDetail.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{p.contract.tenant.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.contract.local.nickname} · {p.contract.local.plaza.name}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-danger">{formatCurrency(Number(p.amount))}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mantenimientos abiertos */}
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-warning" />
+              <h2 className="font-medium text-foreground">Mantenimientos</h2>
+              {openMaint > 0 && (
+                <span className="rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                  {openMaint}
+                </span>
+              )}
+            </div>
+            <Link href="/mantenimientos" className="flex items-center gap-1 text-xs text-gold hover:underline">
+              Ver todos <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          {maintOpen.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Sin mantenimientos pendientes
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {maintOpen.map((m) => (
+                <div key={m.id} className="flex items-start gap-3 rounded-md bg-muted px-3 py-2">
+                  <PriorityDot priority={m.priority} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{m.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {m.local.nickname} · {m.local.plaza.name}
+                    </p>
+                  </div>
+                  <StatusChip status={m.status} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <KpiCard label="Propiedades activas" value={activePropertiesCount} icon={<Building2 className="h-4 w-4" />} />
-        <KpiCard label="Leads sin contactar" value={newLeadsCount} icon={<Sparkles className="h-4 w-4" />} accent="warning" />
-        <KpiCard label="Visitas hoy" value={todayViewingsCount} icon={<Calendar className="h-4 w-4" />} accent="info" />
-        <KpiCard label="Pagos pendientes" value={pendingPayments} icon={<KeySquare className="h-4 w-4" />} accent={pendingPayments > 0 ? "warning" : undefined} />
-        <KpiCard label="Mant. urgentes" value={urgentMaintenance} icon={<Wrench className="h-4 w-4" />} accent={urgentMaintenance > 0 ? "danger" : undefined} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Section title="Tus tareas de hoy" description="Marca hecha cada tarea al completarla." className="lg:col-span-2 rounded-lg border border-border bg-surface p-6" actions={<Button variant="ghost" size="sm" asChild><Link href="/tareas">Ver todas →</Link></Button>}>
-          <TasksTodayWidget tasks={tasks as any} />
-        </Section>
-        <Section title="Comisiones estimadas" description="Pipeline en cartera activa" className="rounded-lg border border-border bg-surface p-6">
-          <div className="space-y-2">
+      {/* Quick links */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { href: "/cobranza",       label: "Matriz de Cobranza",  desc: "Estado de pagos por local y mes" },
+          { href: "/plazas",         label: "Mis Plazas",           desc: "Locales, contratos y ocupación" },
+          { href: "/finanzas",       label: "Presupuesto 2026",     desc: "Ingresos vs egresos por entidad" },
+        ].map((q) => (
+          <Link
+            key={q.href}
+            href={q.href}
+            className="group flex items-center justify-between rounded-xl border border-border bg-surface px-5 py-4 shadow-card hover:border-gold/40 hover:shadow-gold-glow transition-all"
+          >
             <div>
-              <p className="text-xs text-muted-foreground">Renta mensual bajo gestión</p>
-              <p className="font-serif text-2xl">{formatMoneyCompact(monthlyRentTotal)}</p>
+              <p className="font-medium text-foreground group-hover:text-gold transition-colors">{q.label}</p>
+              <p className="text-xs text-muted-foreground">{q.desc}</p>
             </div>
-          </div>
-        </Section>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-gold transition-colors" />
+          </Link>
+        ))}
       </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Actividad reciente del equipo" className="rounded-lg border border-border bg-surface p-6">
-          <ActivityTimeline interactions={recentInteractions as any} />
-        </Section>
-        <Section title="Contratos próximos a vencer" description="Próximos 30 días — prioriza renovaciones." className="rounded-lg border border-border bg-surface p-6">
-          <ExpiringContracts contracts={expiringContracts as any} />
-        </Section>
-      </div>
-
-      <Section title="Tu cartera en el mapa" description="Propiedades activas" className="rounded-lg border border-border bg-surface p-6" actions={<Button variant="outline" size="sm" asChild><Link href="/propiedades/mapa"><MapPin className="h-4 w-4" /> Abrir mapa completo<ArrowUpRight className="h-4 w-4" /></Link></Button>}>
-        <MapPreview count={activePropertiesCount} />
-      </Section>
     </div>
   );
 }
 
-function MapPreview({ count }: { count: number }) {
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  trend,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trend: "up" | "down" | "neutral";
+}) {
   return (
-    <div className="relative h-64 overflow-hidden rounded-md border border-border bg-gradient-to-br from-elevated via-surface to-bg">
-      <div className="absolute inset-0 bg-grid opacity-50" />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-        <MapPin className="mx-auto h-6 w-6 text-gold" />
-        <p className="mt-2 font-serif text-lg">Hermosillo</p>
-        <p className="text-xs text-muted-foreground">{count} propiedades activas</p>
+    <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+      <div className="flex items-start justify-between">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <div
+          className={
+            trend === "up"
+              ? "rounded-md bg-success/10 p-1.5 text-success"
+              : trend === "down"
+              ? "rounded-md bg-danger/10 p-1.5 text-danger"
+              : "rounded-md bg-muted p-1.5 text-muted-foreground"
+          }
+        >
+          <Icon className="h-4 w-4" />
+        </div>
       </div>
+      <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
     </div>
   );
 }
+
+function PriorityDot({ priority }: { priority: string }) {
+  const cls =
+    priority === "URGENTE" ? "bg-danger" :
+    priority === "ALTA"    ? "bg-warning" :
+    priority === "MEDIA"   ? "bg-gold" :
+                             "bg-muted-foreground";
+  return <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${cls}`} />;
+}
+
+function StatusChip({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    ABIERTO:     "bg-danger/10 text-danger",
+    EN_PROGRESO: "bg-warning/10 text-warning",
+    CERRADO:     "bg-success/10 text-success",
+  };
+  const label: Record<string, string> = {
+    ABIERTO: "Abierto", EN_PROGRESO: "En prog.", CERRADO: "Cerrado"
+  };
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${map[status] ?? ""}`}>
+      {label[status] ?? status}
+    </span>
+  );
+}
+
+// React import needed for JSX
+import React from "react";
